@@ -93,7 +93,10 @@ td {
     left: 0;
     width: 100%;
     height: 70px;
-    background-color: #1a1a1a;
+    background: url("https://videocdn.cdnpk.net/videos/389958d0-4f2a-5e18-b65e-ba7278fdd117/horizontal/thumbnails/small.jpg");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -103,7 +106,7 @@ td {
 }
 
 .logo a {
-    color: #ffffff;
+    color: red;
     font-size: 24px;
     font-weight: 700;
     text-decoration: none;
@@ -121,15 +124,9 @@ td {
     text-decoration: none;
     font-size: 16px;
     font-weight: 500;
-    transition: color 0.3s ease;
 }
 
 .nav-links a:hover {
-    color: #4da6ff;
-}
-
-.nav-links a.active {
-    color: #4da6ff;
-    border-bottom: 2px solid #4da6ff;
-    padding-bottom: 5px;
+    color: grey;
+    text-shadow: 2px 1px 1px #000;
 }
