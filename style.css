@@ -63,8 +63,12 @@ input[type="submit"]:hover {
 }
 
 th {
-    background: #d9d9d9;
+    background: url("https://videocdn.cdnpk.net/videos/389958d0-4f2a-5e18-b65e-ba7278fdd117/horizontal/thumbnails/small.jpg");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
     border: none;
+    color: #fff;
     padding: 15px;
 }
 

@@ -66,6 +66,8 @@ const insertData = (data) => {
 
     cell5.appendChild(editBtn);
     cell5.appendChild(deleteBtn);
+
+    saveToLocalStorage();
 };
 
 const resetForm = () => {
@@ -90,11 +92,34 @@ const updateData = (formData) => {
     selectedRow.cells[2].textContent = formData.country;
     selectedRow.cells[3].textContent = formData.salary;
     selectedRow = null;
+
+    saveToLocalStorage();
 }
 
 const onDelete = (row) => {
     if(confirm("Are you sure you want to delete this record?")){
         row.remove();
         resetForm();
+        saveToLocalStorage();
     }
 };
+
+// ---- localStorage persistence (new) ----
+
+const saveToLocalStorage = () => {
+    const rows = [...employeeList.querySelectorAll("tr")];
+    const data = rows.map(row => ({
+        fullName: row.cells[0].textContent,
+        empCode: row.cells[1].textContent,
+        country: row.cells[2].textContent,
+        salary: row.cells[3].textContent,
+    }));
+    localStorage.setItem("employeeData", JSON.stringify(data));
+};
+
+const loadFromLocalStorage = () => {
+    const data = JSON.parse(localStorage.getItem("employeeData")) || [];
+    data.forEach(insertData);
+};
+
+loadFromLocalStorage();
