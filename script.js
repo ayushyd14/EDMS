@@ -14,7 +14,7 @@ form.addEventListener("submit", (event) => {
 
 const onFormSubmit = () => {
     if(!fullName.value.trim() || !empCode.value.trim() || !country.value.trim() || !salary.value.trim() ){
-        alert("Please fill in all Fields. ERR442.unauthOCCUR");
+        alert("Please fill in all Fields.");
         return;
     }
 
