@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <link rel="icon" href="https://png.pngtree.com/png-clipart/20190405/ourlarge/pngtree-letter-e-3d-company-logo-design-png-image_901868.jpg">
+    <title>Server Database | Edeonaut DMS</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <nav class="navbar">
+        <div class="logo"><a href="index.html"><img style="width: 235px;" src="pn54.png"></a></div>
+        
+        <ul class="nav-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="#">About</a></li>
+            <li><a href="index.html">Employee Database</a></li>
+            <li><a href="server-database.html">Server Database</a></li>
+        </ul>
+    </nav>
+
+
+    <div class="container">
+        <div class="col-1">
+            <form id="form" autocomplete="off">
+                <div>
+                    <label>Server Name</label>
+                    <input type="text" name="serverName" id="serverName">
+                </div>
+                <div>
+                    <label>IP Address</label>
+                    <input type="text" name="ipAddress" id="ipAddress">
+                </div>
+                <div>
+                    <label>Location</label>
+                    <input type="text" name="location" id="location">
+                </div>
+                <div>
+                    <label>Status (Online / Offline)</label>
+                    <input type="text" name="status" id="status">
+                </div>
+                <div class="action-button">
+                    <input type="submit" value="Submit">
+                </div>
+            </form>
+        </div>
+
+
+        <div class="col-2">
+            <table class="list" id="serverList">
+                <thead>
+                    <tr>
+                        <th>Server Name</th>
+                        <th>IP Address</th>
+                        <th>Location</th>
+                        <th>Status</th>
+                        <th>Edit/Delete</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+
+
+    <script src="server-database.js"></script>
+</body>
+</html>
