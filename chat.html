@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <link rel="icon" href="https://png.pngtree.com/png-clipart/20190405/ourlarge/pngtree-letter-e-3d-company-logo-design-png-image_901868.jpg">
+    <title>Chat | Edeonaut DMS</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="chat.css">
+</head>
+
+<body>
+
+    <nav class="navbar">
+        <div class="logo"><a href="index.html"><img style="width: 235px;" src="pn54.png"></a></div>
+        
+        <ul class="nav-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="#">About</a></li>
+            <li><a href="index.html">Employee Database</a></li>
+            <li><a href="server-database.html">Server Database</a></li>
+            <li><a href="commits.html">Pull Requests &amp; Commits</a></li>
+            <li><a href="chat.html">Chat</a></li>
+        </ul>
+    </nav>
+
+
+    <div class="container">
+        <div class="col-1 chat-side">
+            <div>
+                <label>Display Name</label>
+                <input type="text" id="userName" maxlength="20" placeholder="Guest">
+            </div>
+            <div class="action-button">
+                <button type="button" id="clearChat" class="chat-btn">Clear Chat</button>
+            </div>
+        </div>
+
+
+        <div class="col-2 chat-main">
+            <div class="chat-box" id="chatBox"></div>
+
+            <form class="chat-form" id="chatForm" autocomplete="off">
+                <input type="text" id="messageInput" maxlength="500" placeholder="Type a message...">
+                <button type="submit" class="chat-btn">Send</button>
+            </form>
+        </div>
+    </div>
+
+
+
+    <script src="chat.js"></script>
+</body>
+</html>
