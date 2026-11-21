@@ -31,8 +31,9 @@
 
     <div class="container">
         <div class="col-1 chat-side">
-            <label>Filter Employees</label>
-            <input type="text" id="filterInput" placeholder="Search employees" autocomplete="off">
+            <label>Filter</label>
+            <input type="text" id="filterInput" placeholder="Search employees or groups" autocomplete="off">
+            <button type="button" id="newGroup" class="chat-btn new-group-btn">+ New Group</button>
             <ul class="contact-list" id="contactList"></ul>
         </div>
 
@@ -40,10 +41,17 @@
         <div class="col-2 chat-main">
             <div class="chat-header">
                 <div class="chat-person">
-                    <span class="avatar avatar-lg"></span>
-                    <div class="chat-title" id="chatTitle"></div>
+                    <span class="avatar avatar-lg" id="chatAvatar"></span>
+                    <div>
+                        <div class="chat-title" id="chatTitle"></div>
+                        <div class="chat-sub" id="chatSub" hidden></div>
+                    </div>
                 </div>
-                <button type="button" id="clearChat" class="chat-btn">Clear Chat</button>
+                <div class="chat-actions">
+                    <button type="button" id="editGroup" class="chat-btn" hidden>Edit Group</button>
+                    <button type="button" id="deleteGroup" class="chat-btn" hidden>Delete Group</button>
+                    <button type="button" id="clearChat" class="chat-btn">Clear Chat</button>
+                </div>
             </div>
 
             <div class="chat-box" id="chatBox"></div>
@@ -53,6 +61,31 @@
                 <input type="text" id="messageInput" maxlength="500" placeholder="Type a message...">
                 <button type="submit" class="chat-btn">Send</button>
             </form>
+        </div>
+    </div>
+
+
+    <div class="modal" id="groupModal" hidden>
+        <div class="modal-box">
+            <div class="modal-title" id="groupModalTitle">New Group</div>
+
+            <label>Group Name</label>
+            <input type="text" id="groupName" maxlength="40" placeholder="e.g. German-French Branch" autocomplete="off">
+
+            <label>Members <span class="selected-count" id="selectedCount"></span></label>
+            <input type="text" id="memberFilter" placeholder="Filter by name, code or country" autocomplete="off">
+
+            <div class="member-tools">
+                <button type="button" id="selectShown" class="chat-btn small">Select shown</button>
+                <button type="button" id="clearMembers" class="chat-btn small">Clear</button>
+            </div>
+
+            <div class="member-list" id="memberList"></div>
+
+            <div class="modal-actions">
+                <button type="button" id="cancelGroup" class="chat-btn">Cancel</button>
+                <button type="button" id="saveGroup" class="chat-btn">Save Group</button>
+            </div>
         </div>
     </div>
 

@@ -1,21 +1,43 @@
 const filterInput = document.getElementById("filterInput");
+const newGroupBtn = document.getElementById("newGroup");
 const contactList = document.getElementById("contactList");
+const chatAvatar = document.getElementById("chatAvatar");
 const chatTitle = document.getElementById("chatTitle");
+const chatSub = document.getElementById("chatSub");
+const editGroupBtn = document.getElementById("editGroup");
+const deleteGroupBtn = document.getElementById("deleteGroup");
+const clearChat = document.getElementById("clearChat");
 const chatBox = document.getElementById("chatBox");
 const typingLine = document.getElementById("typing");
 const chatForm = document.getElementById("chatForm");
 const messageInput = document.getElementById("messageInput");
-const clearChat = document.getElementById("clearChat");
 
-const GROUP_KEY = "__all__";
+// group modal
+const groupModal = document.getElementById("groupModal");
+const groupModalTitle = document.getElementById("groupModalTitle");
+const groupNameInput = document.getElementById("groupName");
+const memberFilter = document.getElementById("memberFilter");
+const memberList = document.getElementById("memberList");
+const selectedCount = document.getElementById("selectedCount");
+const selectShownBtn = document.getElementById("selectShown");
+const clearMembersBtn = document.getElementById("clearMembers");
+const cancelGroupBtn = document.getElementById("cancelGroup");
+const saveGroupBtn = document.getElementById("saveGroup");
+
+const GROUP_KEY = "__all__";     // built-in "All Employees" group
+const GROUP_PREFIX = "g:";       // custom groups are stored as g:<id>
 const MAX_MESSAGES = 200;        // per conversation
-const MAX_GROUP_REPLIES = 3;     // how many employees answer in "All Employees"
+const MAX_GROUP_REPLIES = 3;     // how many members answer in a group chat
 
 let employees = loadEmployees();
+let groups = loadGroups();
 let conversations = loadConversations();
 let activeKey = GROUP_KEY;
 let filterText = "";
 const pending = {};              // conversationKey -> names currently "typing"
+
+let editingGroupId = null;       // null = creating a new group
+let modalSelected = new Set();   // empCodes ticked in the group modal
 
 // ---------- storage helpers ----------
 
@@ -31,6 +53,17 @@ function loadJSON(key, fallback) {
 function loadEmployees() {
     const data = loadJSON("employeeData", []);
     return Array.isArray(data) ? data : [];
+}
+
+function loadGroups() {
+    const data = loadJSON("chatGroups", []);
+    return Array.isArray(data)
+        ? data.filter(g => g && g.id && g.name && Array.isArray(g.members))
+        : [];
+}
+
+function saveGroups() {
+    localStorage.setItem("chatGroups", JSON.stringify(groups));
 }
 
 function loadConversations() {
@@ -49,23 +82,65 @@ function addMessage(key, message) {
     localStorage.setItem("chatData", JSON.stringify(conversations));
 }
 
+// ---------- lookups ----------
+
+function isCustomGroupKey(key) {
+    return key.startsWith(GROUP_PREFIX);
+}
+
+function getActiveGroup() {
+    if (!isCustomGroupKey(activeKey)) return null;
+    return groups.find(g => GROUP_PREFIX + g.id === activeKey) || null;
+}
+
+function getActiveEmployee() {
+    if (activeKey === GROUP_KEY || isCustomGroupKey(activeKey)) return null;
+    return employees.find(e => e.empCode === activeKey) || null;
+}
+
+function getGroupMembers(group) {
+    return employees.filter(e => group.members.includes(e.empCode));
+}
+
+function isGroupChat() {
+    return activeKey === GROUP_KEY || isCustomGroupKey(activeKey);
+}
+
+// Who can answer in the open conversation
+function getResponderPool() {
+    if (activeKey === GROUP_KEY) return employees;
+    const group = getActiveGroup();
+    if (group) return getGroupMembers(group);
+    const emp = getActiveEmployee();
+    return emp ? [emp] : [];
+}
+
+function ensureValidActiveKey() {
+    if (activeKey === GROUP_KEY) return;
+    if (isCustomGroupKey(activeKey) ? !getActiveGroup() : !getActiveEmployee()) {
+        activeKey = GROUP_KEY;
+    }
+}
+
+function matchesQuery(emp, query) {
+    return !query ||
+        (emp.fullName || "").toLowerCase().includes(query) ||
+        (emp.empCode || "").toLowerCase().includes(query) ||
+        (emp.country || "").toLowerCase().includes(query);
+}
+
 // ---------- rendering ----------
 
 function formatTime(timestamp) {
     return new Date(timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-function getActiveEmployee() {
-    if (activeKey === GROUP_KEY) return null;
-    return employees.find(e => e.empCode === activeKey) || null;
-}
-
-function buildContact(name, key) {
+function buildContact(name, key, isGroup) {
     const item = document.createElement("li");
     item.className = "contact" + (activeKey === key ? " active" : "");
 
     const avatar = document.createElement("span");
-    avatar.className = "avatar";
+    avatar.className = "avatar" + (isGroup ? " avatar-group" : "");
 
     const label = document.createElement("span");
     label.className = "contact-name";
@@ -77,50 +152,68 @@ function buildContact(name, key) {
     return item;
 }
 
+function addNote(text) {
+    const note = document.createElement("li");
+    note.className = "contact-empty";
+    note.textContent = text;
+    contactList.appendChild(note);
+}
+
 function renderContacts() {
     contactList.replaceChildren();
 
-    contactList.appendChild(buildContact("All Employees", GROUP_KEY));
-
-    if (employees.length === 0) {
-        const empty = document.createElement("li");
-        empty.className = "contact-empty";
-        empty.textContent = "No employees yet. Add some on the Employee Database page.";
-        contactList.appendChild(empty);
-        return;
-    }
+    contactList.appendChild(buildContact("All Employees", GROUP_KEY, true));
 
     const query = filterText.trim().toLowerCase();
-    const matches = employees.filter(e =>
-        !query ||
-        (e.fullName || "").toLowerCase().includes(query) ||
-        (e.empCode || "").toLowerCase().includes(query) ||
-        (e.country || "").toLowerCase().includes(query)
-    );
 
-    if (matches.length === 0) {
-        const none = document.createElement("li");
-        none.className = "contact-empty";
-        none.textContent = "No employees match your filter.";
-        contactList.appendChild(none);
+    const groupMatches = groups.filter(g => !query || g.name.toLowerCase().includes(query));
+    groupMatches.forEach(g => contactList.appendChild(buildContact(g.name, GROUP_PREFIX + g.id, true)));
+
+    if (employees.length === 0) {
+        addNote("No employees yet. Add some on the Employee Database page.");
         return;
     }
 
-    matches.forEach(emp => contactList.appendChild(buildContact(emp.fullName, emp.empCode)));
+    const matches = employees.filter(e => matchesQuery(e, query));
+    if (matches.length === 0 && groupMatches.length === 0) {
+        addNote("Nothing matches your filter.");
+        return;
+    }
+
+    matches.forEach(emp => contactList.appendChild(buildContact(emp.fullName, emp.empCode, false)));
 }
 
 function renderHeader() {
+    const group = getActiveGroup();
     const emp = getActiveEmployee();
-    chatTitle.textContent = emp ? emp.fullName : "All Employees";
+
+    chatAvatar.className = "avatar avatar-lg" + (isGroupChat() ? " avatar-group" : "");
+
+    if (group) {
+        const names = getGroupMembers(group).map(m => m.fullName);
+        chatTitle.textContent = group.name;
+        chatSub.textContent = names.length ? "Members: " + names.join(", ") : "No members left in this group";
+        chatSub.hidden = false;
+    } else {
+        chatTitle.textContent = emp ? emp.fullName : "All Employees";
+        chatSub.textContent = "";
+        chatSub.hidden = true;
+    }
+
+    editGroupBtn.hidden = !group;
+    deleteGroupBtn.hidden = !group;
 }
 
 function renderMessages() {
     chatBox.replaceChildren();
 
     const list = conversations[activeKey] || [];
+    const pool = getResponderPool();
 
     if (employees.length === 0) {
         showEmpty("No employees to chat with yet. Add some on the Employee Database page.");
+    } else if (pool.length === 0) {
+        showEmpty("This group has no employees left. Use Edit Group to add members.");
     } else if (list.length === 0) {
         showEmpty("No messages yet. Say something!");
     } else {
@@ -143,7 +236,7 @@ function renderMessages() {
         chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    messageInput.disabled = employees.length === 0;
+    messageInput.disabled = pool.length === 0;
 }
 
 function showEmpty(message) {
@@ -171,6 +264,115 @@ function selectConversation(key) {
     renderMessages();
     updateTyping();
     messageInput.focus();
+}
+
+// ---------- group modal (create / edit) ----------
+
+function openGroupModal(group) {
+    editingGroupId = group ? group.id : null;
+    groupModalTitle.textContent = group ? "Edit Group" : "New Group";
+    groupNameInput.value = group ? group.name : "";
+    memberFilter.value = "";
+    modalSelected = new Set(group ? group.members : []);
+    renderMemberList();
+    groupModal.hidden = false;
+    groupNameInput.focus();
+}
+
+function closeGroupModal() {
+    groupModal.hidden = true;
+}
+
+function getShownMembers() {
+    const query = memberFilter.value.trim().toLowerCase();
+    return employees.filter(e => matchesQuery(e, query));
+}
+
+function updateSelectedCount() {
+    selectedCount.textContent = "(" + modalSelected.size + " selected)";
+}
+
+function renderMemberList() {
+    memberList.replaceChildren();
+    updateSelectedCount();
+
+    if (employees.length === 0) {
+        const none = document.createElement("div");
+        none.className = "member-empty";
+        none.textContent = "No employees yet. Add some on the Employee Database page.";
+        memberList.appendChild(none);
+        return;
+    }
+
+    const shown = getShownMembers();
+    if (shown.length === 0) {
+        const none = document.createElement("div");
+        none.className = "member-empty";
+        none.textContent = "No employees match.";
+        memberList.appendChild(none);
+        return;
+    }
+
+    shown.forEach(emp => {
+        const row = document.createElement("label");
+        row.className = "member";
+
+        const box = document.createElement("input");
+        box.type = "checkbox";
+        box.checked = modalSelected.has(emp.empCode);
+        box.addEventListener("change", () => {
+            if (box.checked) modalSelected.add(emp.empCode);
+            else modalSelected.delete(emp.empCode);
+            updateSelectedCount();
+        });
+
+        const name = document.createElement("span");
+        name.textContent = emp.fullName;
+
+        const country = document.createElement("small");
+        country.textContent = emp.country;
+
+        row.appendChild(box);
+        row.appendChild(name);
+        row.appendChild(country);
+        memberList.appendChild(row);
+    });
+}
+
+function saveGroup() {
+    const name = groupNameInput.value.trim();
+    if (!name) {
+        alert("Please enter a group name.");
+        return;
+    }
+
+    const members = employees.filter(e => modalSelected.has(e.empCode)).map(e => e.empCode);
+    if (members.length === 0) {
+        alert("Pick at least one employee.");
+        return;
+    }
+
+    groups = loadGroups(); // re-read so other tabs aren't overwritten
+    let key = null;
+
+    if (editingGroupId) {
+        const existing = groups.find(g => g.id === editingGroupId);
+        if (existing) {
+            existing.name = name;
+            existing.members = members;
+            key = GROUP_PREFIX + existing.id;
+        }
+    }
+
+    if (!key) {
+        const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+        groups.push({ id: id, name: name, members: members });
+        key = GROUP_PREFIX + id;
+    }
+
+    saveGroups();
+    closeGroupModal();
+    selectConversation(key);
 }
 
 // ---------- engineer replies ----------
@@ -317,20 +519,17 @@ chatForm.addEventListener("submit", (event) => {
     event.preventDefault();
 
     const text = messageInput.value.trim();
-    if (!text || employees.length === 0) return;
+    const pool = getResponderPool();
+    if (!text || pool.length === 0) return;
 
     const key = activeKey;
     addMessage(key, { mine: true, from: "You", text: text, time: Date.now() });
     messageInput.value = "";
     renderMessages();
 
-    let responders;
-    if (key === GROUP_KEY) {
-        responders = [...employees].sort(() => Math.random() - 0.5).slice(0, MAX_GROUP_REPLIES);
-    } else {
-        const emp = getActiveEmployee();
-        responders = emp ? [emp] : [];
-    }
+    const responders = isGroupChat()
+        ? [...pool].sort(() => Math.random() - 0.5).slice(0, MAX_GROUP_REPLIES)
+        : pool;
 
     responders.forEach((emp, i) => {
         scheduleReply(key, emp, text, 800 + i * 900 + Math.random() * 700);
@@ -351,11 +550,61 @@ clearChat.addEventListener("click", () => {
     }
 });
 
-// Keep in sync with other tabs (e.g. employees added on the Employee Database page)
+newGroupBtn.addEventListener("click", () => openGroupModal(null));
+
+editGroupBtn.addEventListener("click", () => {
+    const group = getActiveGroup();
+    if (group) openGroupModal(group);
+});
+
+deleteGroupBtn.addEventListener("click", () => {
+    const group = getActiveGroup();
+    if (!group) return;
+    if (confirm('Delete the group "' + group.name + '" and its messages?')) {
+        groups = loadGroups().filter(g => g.id !== group.id);
+        saveGroups();
+        conversations = loadConversations();
+        delete conversations[GROUP_PREFIX + group.id];
+        localStorage.setItem("chatData", JSON.stringify(conversations));
+        selectConversation(GROUP_KEY);
+    }
+});
+
+memberFilter.addEventListener("input", renderMemberList);
+
+selectShownBtn.addEventListener("click", () => {
+    getShownMembers().forEach(e => modalSelected.add(e.empCode));
+    renderMemberList();
+});
+
+clearMembersBtn.addEventListener("click", () => {
+    modalSelected.clear();
+    renderMemberList();
+});
+
+cancelGroupBtn.addEventListener("click", closeGroupModal);
+saveGroupBtn.addEventListener("click", saveGroup);
+
+groupModal.addEventListener("click", (event) => {
+    if (event.target === groupModal) closeGroupModal();
+});
+
+document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !groupModal.hidden) closeGroupModal();
+});
+
+// Keep in sync with other tabs (employees, groups and messages)
 window.addEventListener("storage", (event) => {
     if (event.key === "employeeData") {
         employees = loadEmployees();
-        if (activeKey !== GROUP_KEY && !getActiveEmployee()) activeKey = GROUP_KEY;
+        ensureValidActiveKey();
+        renderContacts();
+        renderHeader();
+        renderMessages();
+        if (!groupModal.hidden) renderMemberList();
+    } else if (event.key === "chatGroups") {
+        groups = loadGroups();
+        ensureValidActiveKey();
         renderContacts();
         renderHeader();
         renderMessages();
