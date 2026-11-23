@@ -1,3 +1,25 @@
+// ============================================================
+//  PROFILE PICTURES: edit these two lists, nothing else.
+//  Key = Emp Code OR full name (not case sensitive) / group name.
+//  Value = image path, relative to the html/ pages ("../images/...").
+//  Anyone not listed, or with a wrong path, keeps the grey placeholder.
+// ============================================================
+const PROFILE_PICS = {
+    "190021": "../images/190021.jpg",   // Brad Q.
+    "210219": "../images/210219.jpg",   // V.C. Chandrapaul
+    "180006": "../images/180006.jpg",   // Chris Harrison
+    "020002": "../images/020002.jpg",   // Zuvloć Romilly
+    "150028": "../images/150028.jpg",   // Leo Cooper
+    "090007": "../images/090007.jpg",   // Vishy Sharma
+    "970001": "../images/970001.jpg",   // Edwin Foster
+    "030009": "../images/030009.jpg",   // Shikaku Nakuru
+};
+
+const GROUP_PICS = {
+    "All Employees": "../images/all-employees.png",
+    // "German-French Branch": "../images/german-french.png",
+};
+
 const filterInput = document.getElementById("filterInput");
 const newGroupBtn = document.getElementById("newGroup");
 const contactList = document.getElementById("contactList");
@@ -38,6 +60,39 @@ const pending = {};              // conversationKey -> names currently "typing"
 
 let editingGroupId = null;       // null = creating a new group
 let modalSelected = new Set();   // empCodes ticked in the group modal
+
+// ---------- profile pictures (configured in js/profile-pics.js) ----------
+
+function normalizeKey(text) {
+    return String(text).trim().toLowerCase();
+}
+
+function buildLookup(source) {
+    const lookup = {};
+    Object.keys(source || {}).forEach(k => { lookup[normalizeKey(k)] = source[k]; });
+    return lookup;
+}
+
+const employeePics = buildLookup(typeof PROFILE_PICS !== "undefined" ? PROFILE_PICS : {});
+const groupPics = buildLookup(typeof GROUP_PICS !== "undefined" ? GROUP_PICS : {});
+
+function getEmployeePic(emp) {
+    return employeePics[normalizeKey(emp.empCode)] || employeePics[normalizeKey(emp.fullName)] || null;
+}
+
+function getGroupPic(name) {
+    return groupPics[normalizeKey(name)] || null;
+}
+
+// Swaps the placeholder only if the image actually loads
+function setAvatarImage(el, url) {
+    el.dataset.pic = url;
+    const img = new Image();
+    img.onload = () => {
+        if (el.dataset.pic === url) el.style.backgroundImage = "url(" + JSON.stringify(url) + ")";
+    };
+    img.src = url;
+}
 
 // ---------- storage helpers ----------
 
@@ -135,12 +190,13 @@ function formatTime(timestamp) {
     return new Date(timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-function buildContact(name, key, isGroup) {
+function buildContact(name, key, isGroup, picUrl) {
     const item = document.createElement("li");
     item.className = "contact" + (activeKey === key ? " active" : "");
 
     const avatar = document.createElement("span");
     avatar.className = "avatar" + (isGroup ? " avatar-group" : "");
+    if (picUrl) setAvatarImage(avatar, picUrl);
 
     const label = document.createElement("span");
     label.className = "contact-name";
@@ -162,12 +218,12 @@ function addNote(text) {
 function renderContacts() {
     contactList.replaceChildren();
 
-    contactList.appendChild(buildContact("All Employees", GROUP_KEY, true));
+    contactList.appendChild(buildContact("All Employees", GROUP_KEY, true, getGroupPic("All Employees")));
 
     const query = filterText.trim().toLowerCase();
 
     const groupMatches = groups.filter(g => !query || g.name.toLowerCase().includes(query));
-    groupMatches.forEach(g => contactList.appendChild(buildContact(g.name, GROUP_PREFIX + g.id, true)));
+    groupMatches.forEach(g => contactList.appendChild(buildContact(g.name, GROUP_PREFIX + g.id, true, getGroupPic(g.name))));
 
     if (employees.length === 0) {
         addNote("No employees yet. Add some on the Employee Database page.");
@@ -180,7 +236,7 @@ function renderContacts() {
         return;
     }
 
-    matches.forEach(emp => contactList.appendChild(buildContact(emp.fullName, emp.empCode, false)));
+    matches.forEach(emp => contactList.appendChild(buildContact(emp.fullName, emp.empCode, false, getEmployeePic(emp))));
 }
 
 function renderHeader() {
@@ -188,6 +244,13 @@ function renderHeader() {
     const emp = getActiveEmployee();
 
     chatAvatar.className = "avatar avatar-lg" + (isGroupChat() ? " avatar-group" : "");
+    chatAvatar.style.backgroundImage = "";
+    delete chatAvatar.dataset.pic;
+
+    const headerPic = group ? getGroupPic(group.name)
+        : emp ? getEmployeePic(emp)
+        : getGroupPic("All Employees");
+    if (headerPic) setAvatarImage(chatAvatar, headerPic);
 
     if (group) {
         const names = getGroupMembers(group).map(m => m.fullName);
