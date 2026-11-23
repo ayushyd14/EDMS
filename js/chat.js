@@ -13,6 +13,8 @@ const PROFILE_PICS = {
     "090007": "../images/090007.jpg",   // Vishy Sharma
     "970001": "https://static.vecteezy.com/system/resources/previews/036/190/422/non_2x/old-business-man-blank-profile-photo-vector.jpg",   // Edwin Foster
     "030009": "../images/030009.jpg",   // Shikaku Nakuru
+    "Investor": "https://thumbs.dreamstime.com/b/businessman-ceo-fashion-businessman-ceo-fashion-man-formal-outfit-grey-background-manager-beard-happy-face-194429499.jpg",   // Shikaku Nakuru
+    "El Degos' Footwear Investors": "https://img.magnific.com/premium-photo/mature-businessman-portrait-city-with-arms-crossed-rooftop-corporate-entrepreneur-confidence-male-person-face-smile-downtown-balcony-as-tech-startup-ceo-trust-professional_590464-357957.jpg?semt=ais_hybrid&w=740&q=80",   // Shikaku Nakuru
     "21012": "https://thumbs.dreamstime.com/b/brown-hair-businesswoman-avatar-woman-face-profile-icon-concept-online-support-service-female-cartoon-character-portrait-brown-126956822.jpg",   // Shikaku Nakuru
 };
 
