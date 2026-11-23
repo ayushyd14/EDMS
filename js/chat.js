@@ -8,15 +8,18 @@ const PROFILE_PICS = {
     "190021": "../images/190021.jpg",   // Brad Q.
     "210219": "../images/210219.jpg",   // V.C. Chandrapaul
     "180006": "../images/180006.jpg",   // Chris Harrison
-    "020002": "../images/020002.jpg",   // Zuvloć Romilly
-    "150028": "../images/150028.jpg",   // Leo Cooper
+    "020002": "https://mir-s3-cdn-cf.behance.net/project_modules/hd/d95c1f148207527.62d1246c25004.jpg",   // Zuvloć Romilly
+    "150028": "https://static.vecteezy.com/system/resources/previews/055/281/758/non_2x/male-avatar-illustration-for-profile-or-projects-vector.jpg",   // Leo Cooper
     "090007": "../images/090007.jpg",   // Vishy Sharma
-    "970001": "../images/970001.jpg",   // Edwin Foster
+    "970001": "https://static.vecteezy.com/system/resources/previews/036/190/422/non_2x/old-business-man-blank-profile-photo-vector.jpg",   // Edwin Foster
     "030009": "../images/030009.jpg",   // Shikaku Nakuru
+    "21012": "https://thumbs.dreamstime.com/b/brown-hair-businesswoman-avatar-woman-face-profile-icon-concept-online-support-service-female-cartoon-character-portrait-brown-126956822.jpg",   // Shikaku Nakuru
 };
 
 const GROUP_PICS = {
     "All Employees": "../images/all-employees.png",
+    "India-Japan Branch": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQd9CSO0LSrU2PxkW9IKsxRA8q1Z_q-MNlA-WtZunbdxw&s=10",
+    "German-French Branch": "https://thumbs.dreamstime.com/b/france-germany-circle-flags-d-icon-round-german-french-national-symbols-vector-304673402.jpg",
     // "German-French Branch": "../images/german-french.png",
 };
 
