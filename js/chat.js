@@ -117,6 +117,11 @@ function loadJSON(key, fallback) {
     }
 }
 
+function loadList(key) {
+    const data = loadJSON(key, []);
+    return Array.isArray(data) ? data : [];
+}
+
 function loadEmployees() {
     const data = loadJSON("employeeData", []);
     if (!Array.isArray(data)) return [];
@@ -531,6 +536,65 @@ function formatMoney(value) {
     return isNaN(n) ? String(value) : n.toLocaleString("en-US");
 }
 
+function escapeRegex(text) {
+    return String(text).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// true if `term` appears in `text` as a whole word / token
+function mentions(text, term) {
+    const t = String(term || "").trim();
+    if (!t) return false;
+    return new RegExp("(^|[^a-z0-9])" + escapeRegex(t) + "([^a-z0-9]|$)", "i").test(text);
+}
+
+// -- company records (projects, clients, assets, departments)
+
+// Finds a record the message names directly: project codename/name, asset tag, client, department
+function lookupRecord(text) {
+    const project = loadList("projectData").find(p => p && (mentions(text, p.codename) || mentions(text, p.projectName)));
+    if (project) return { type: "project", item: project };
+
+    const asset = loadList("assetData").find(a => a && mentions(text, a.assetTag));
+    if (asset) return { type: "asset", item: asset };
+
+    const client = loadList("clientData").find(c => c && mentions(text, c.clientName));
+    if (client) return { type: "client", item: client };
+
+    const dept = loadList("departmentData").find(d => d && (mentions(text, d.deptName) || mentions(text, d.deptCode)));
+    if (dept) return { type: "department", item: dept };
+
+    return null;
+}
+
+function recordReply(found) {
+    const x = found.item;
+    if (found.type === "project") {
+        return x.codename + " (" + x.projectName + "): " + x.status + ", " + x.progress + "% done, " +
+            x.priority + " priority, led by " + x.lead + ", due " + x.deadline + ".";
+    }
+    if (found.type === "client") {
+        return x.clientName + " (" + x.industry + ", " + x.country + "): contact is " +
+            x.contactPerson + ", account is " + x.status + ".";
+    }
+    if (found.type === "asset") {
+        return x.assetTag + " is a " + x.assetName + " (" + x.category + "), " + x.status +
+            (x.assignedTo ? ", assigned to " + x.assignedTo : ", unassigned") + ".";
+    }
+    return x.deptName + " (" + x.deptCode + "): headed by " + x.head + ", based in " + x.location + ".";
+}
+
+function investorRecordReply(found) {
+    const x = found.item;
+    if (found.type === "project") {
+        return "How is " + x.codename + " tracking? It's at " + x.progress + "% with a " + x.deadline +
+            " deadline. Will it land on time and on budget?";
+    }
+    if (found.type === "client") {
+        return "I see $" + formatMoney(x.contractValue) + " on the " + x.clientName + " contract. Is it renewing?";
+    }
+    return recordReply(found);
+}
+
 // -- engineers (employees)
 
 function serverReply() {
@@ -556,6 +620,45 @@ function commitReply() {
         " on " + latest.branch + ", dated " + latest.commitDate + ".";
 }
 
+function projectReply(person) {
+    const projects = loadList("projectData");
+    if (projects.length === 0) return "No projects on the board yet. Add some on the Projects page.";
+
+    const mine = projects.filter(p =>
+        normalizeKey(p.lead) === normalizeKey(person.name) || normalizeKey(p.lead) === normalizeKey(person.key));
+    if (mine.length > 0) {
+        return "I'm leading " + mine.map(p => p.codename + " (" + p.progress + "%)").join(", ") +
+            ". Ask me about any codename.";
+    }
+
+    const live = projects.filter(p => p.status === "Active").length;
+    return projects.length + " project(s) on the board, " + live + " active: " +
+        projects.map(p => p.codename).join(", ") + ". Ask me about a codename.";
+}
+
+function clientReply() {
+    const clients = loadList("clientData");
+    if (clients.length === 0) return "No clients on record yet. Add some on the Clients page.";
+    const active = clients.filter(c => c.status === "Active");
+    return clients.length + " client(s) on record, " + active.length + " active" +
+        (active.length ? ": " + active.map(c => c.clientName).join(", ") : "") + ".";
+}
+
+function assetReply() {
+    const assets = loadList("assetData");
+    if (assets.length === 0) return "No assets on record yet. Add some on the Assets page.";
+    const repair = assets.filter(a => a.status === "Under Repair");
+    const stock = assets.filter(a => a.status === "In Stock").length;
+    return assets.length + " asset(s) on record, " + stock + " in stock, " + repair.length + " under repair" +
+        (repair.length ? ": " + repair.map(a => a.assetTag).join(", ") : "") + ".";
+}
+
+function departmentReply() {
+    const depts = loadList("departmentData");
+    if (depts.length === 0) return "No departments on record yet. Add some on the Departments page.";
+    return depts.length + " department(s): " + depts.map(d => d.deptName + " (" + d.head + ")").join(", ") + ".";
+}
+
 const engineerRules = [
     {
         test: /\b(salary|pay|raise|bonus|appraisal)\b/,
@@ -563,6 +666,10 @@ const engineerRules = [
     },
     { test: /\b(servers?|uptime|downtime|offline|outage|ping)\b/, reply: serverReply },
     { test: /\b(commits?|push(ed)?|pull request|prs?|merge[ds]?|branch(es)?|git)\b/, reply: commitReply },
+    { test: /\b(projects?|codenames?|milestones?|roadmap|sprints?|portfolio)\b/, reply: projectReply },
+    { test: /\b(clients?|customers?|accounts?|contracts?)\b/, reply: clientReply },
+    { test: /\b(assets?|laptops?|hardware|equipment|inventory|licen[sc]es?)\b/, reply: assetReply },
+    { test: /\b(departments?|depts?|headcount|org chart)\b/, reply: departmentReply },
     {
         test: /\b(bugs?|errors?|crash(es|ed)?|issues?|broken|fail(s|ed|ing)?|exception)\b/,
         reply: [
@@ -642,9 +749,29 @@ function stakeReply(person) {
     return "My stake in " + person.company + " is " + person.stake + "%. Talk to me before anything dilutes it.";
 }
 
+function projectInvestorReply() {
+    const projects = loadList("projectData");
+    if (projects.length === 0) return "I don't see a project pipeline yet. What are we building?";
+    const live = projects.filter(p => p.status === "Active").length;
+    const avg = Math.round(projects.reduce((sum, p) => sum + (Number(p.progress) || 0), 0) / projects.length);
+    return projects.length + " project(s) in the pipeline, " + live + " active, " + avg +
+        "% average progress. Which ones move the revenue?";
+}
+
+function clientInvestorReply() {
+    const clients = loadList("clientData");
+    if (clients.length === 0) return "I don't see any clients on record yet. Who's paying us?";
+    const active = clients.filter(c => c.status === "Active");
+    const total = active.reduce((sum, c) => sum + (Number(c.contractValue) || 0), 0);
+    return clients.length + " client(s), " + active.length + " active, $" + formatMoney(total) +
+        " in active contracts. What's the renewal outlook?";
+}
+
 const investorRules = [
     { test: /\b(invest(ed|ment|ments|ing)?|money|funds?|funding|capital|amount|cheque)\b/, reply: investmentReply },
     { test: /\b(stake|equity|ownership|shares?|dilut\w*)\b/, reply: stakeReply },
+    { test: /\b(projects?|codenames?|milestones?|pipeline)\b/, reply: projectInvestorReply },
+    { test: /\b(clients?|contracts?|accounts?)\b/, reply: clientInvestorReply },
     {
         test: /\b(returns?|roi|profits?|dividends?|payouts?|exit|ipo)\b/,
         reply: [
@@ -727,6 +854,10 @@ function getReply(person, text) {
     const rules = investor ? investorRules : engineerRules;
     const fallbacks = investor ? investorFallbacks : engineerFallbacks;
     const lower = text.toLowerCase();
+
+    // a named project / client / asset tag / department gets a direct answer
+    const found = lookupRecord(lower);
+    if (found) return investor ? investorRecordReply(found) : recordReply(found);
 
     for (const rule of rules) {
         if (rule.test.test(lower)) {

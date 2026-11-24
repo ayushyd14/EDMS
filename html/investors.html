@@ -145,6 +145,11 @@
             gap: 30px;
         }
 
+        .nav-links > li {
+            position: relative;
+            padding: 24px 0;
+        }
+
         .nav-links a {
             color: #fff;
             text-decoration: none;
@@ -156,6 +161,41 @@
             color: grey;
             text-shadow: 2px 1px 1px #000;
         }
+
+        .drop-label {
+            color: #fff;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: default;
+        }
+
+        .dropdown:hover .drop-label {
+            color: grey;
+            text-shadow: 2px 1px 1px #000;
+        }
+
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: -14px;
+            min-width: 220px;
+            list-style: none;
+            background: rgba(20, 20, 20, 0.96);
+            padding: 8px 0;
+            border-radius: 2px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        .dropdown:hover .dropdown-menu {
+            display: block;
+        }
+
+        .dropdown-menu a {
+            display: block;
+            padding: 10px 18px;
+            white-space: nowrap;
+        }
     </style>
 </head>
 
@@ -165,8 +205,18 @@
         <div class="logo"><a href="../index.html"><img style="width: 235px;" src="../pn54.png"></a></div>
 
         <ul class="nav-links">
-            <li><a href="../index.html">Employee Database</a></li>
-            <li><a href="server-database.html">Server Database</a></li>
+            <li><a href="dashboard.html">Dashboard</a></li>
+            <li class="dropdown">
+                <span class="drop-label">Databases &#9662;</span>
+                <ul class="dropdown-menu">
+                    <li><a href="../index.html">Employee Database</a></li>
+                    <li><a href="server-database.html">Server Database</a></li>
+                    <li><a href="clients.html">Clients</a></li>
+                    <li><a href="departments.html">Departments</a></li>
+                    <li><a href="assets.html">Assets</a></li>
+                </ul>
+            </li>
+            <li><a href="projects.html">Projects</a></li>
             <li><a href="commits.html">Pull Requests &amp; Commits</a></li>
             <li><a href="chat.html">Chat</a></li>
             <li><a href="investors.html">Investors</a></li>

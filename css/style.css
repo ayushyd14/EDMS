@@ -34,7 +34,8 @@ label {
     color: #000;
 }
 
-input {
+input,
+select {
     background: rgb(255, 255, 255);
     outline: none;
     border: 2px solid #3e252247;
@@ -100,6 +101,61 @@ td + td {
     margin-right: 6px;
 }
 
+/* ---- wide layout (tables with many columns) ---- */
+
+.container.wide .col-1 {
+    width: 34%;
+    padding: 2rem;
+}
+
+.container.wide .col-2 {
+    width: 66%;
+}
+
+.container.wide th {
+    padding: 12px 6px;
+    font-size: 0.85rem;
+}
+
+.container.wide td {
+    padding: 4px 6px;
+}
+
+/* ---- status badges ---- */
+
+.badge {
+    display: inline-block;
+    padding: 2px 9px;
+    border-radius: 10px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #fff;
+    background: #777;
+}
+
+.badge-active,
+.badge-in-use { background: #2e9e5b; }
+
+.badge-planning,
+.badge-prospect,
+.badge-in-stock { background: #1a9be0; }
+
+.badge-on-hold,
+.badge-medium,
+.badge-under-repair { background: #d99a12; }
+
+.badge-completed { background: #5a6bd8; }
+
+.badge-high { background: #e07a1a; }
+
+.badge-low { background: #8a8f96; }
+
+.badge-critical,
+.badge-churned,
+.badge-retired { background: #c9433a; }
+
+/* ---- navbar ---- */
+
 .navbar {
     position: fixed;
     top: 0;
@@ -132,6 +188,11 @@ td + td {
     gap: 30px;
 }
 
+.nav-links > li {
+    position: relative;
+    padding: 24px 0;
+}
+
 .nav-links a {
     color: #fff;
     text-decoration: none;
@@ -142,4 +203,145 @@ td + td {
 .nav-links a:hover {
     color: grey;
     text-shadow: 2px 1px 1px #000;
+}
+
+.drop-label {
+    color: #fff;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: default;
+}
+
+.dropdown:hover .drop-label {
+    color: grey;
+    text-shadow: 2px 1px 1px #000;
+}
+
+.dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: -14px;
+    min-width: 220px;
+    list-style: none;
+    background: rgba(20, 20, 20, 0.96);
+    padding: 8px 0;
+    border-radius: 2px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.dropdown:hover .dropdown-menu {
+    display: block;
+}
+
+.dropdown-menu a {
+    display: block;
+    padding: 10px 18px;
+    white-space: nowrap;
+}
+
+/* ---- dashboard ---- */
+
+.dash {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1.5rem;
+    padding-bottom: 3rem;
+}
+
+.dash-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.dash-sub {
+    color: #555;
+    font-size: 0.9rem;
+}
+
+.stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 1rem;
+}
+
+.stat-card {
+    background: #eeeeee;
+    padding: 1.2rem 1.4rem;
+    border-radius: 2px;
+    border-left: 4px solid #1a9be0;
+}
+
+.stat-value {
+    font-size: 1.9rem;
+    font-weight: 700;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: #555;
+}
+
+.dash-panels {
+    display: flex;
+    gap: 1.5rem;
+    align-items: flex-start;
+}
+
+.panel {
+    flex: 1;
+    background: #eeeeee;
+    padding: 1.2rem 1.6rem;
+    border-radius: 2px;
+}
+
+.panel-title {
+    font-weight: 700;
+    margin-bottom: 0.8rem;
+}
+
+.panel-empty {
+    color: #777;
+    font-size: 0.9rem;
+}
+
+.progress-row {
+    margin-bottom: 0.9rem;
+}
+
+.progress-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    font-size: 0.9rem;
+}
+
+.progress-sub {
+    color: #555;
+    font-size: 0.75rem;
+}
+
+.bar {
+    height: 8px;
+    margin-top: 4px;
+    background: #fff;
+    border: 1px solid #3e252247;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.bar-fill {
+    height: 100%;
+    background: #1a9be0;
+}
+
+.feed-item {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #ddd;
+    font-size: 0.9rem;
+}
+
+.feed-meta {
+    color: #555;
+    font-size: 0.75rem;
 }

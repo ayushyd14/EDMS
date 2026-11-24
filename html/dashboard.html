@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="https://png.pngtree.com/png-clipart/20190405/ourlarge/pngtree-letter-e-3d-company-logo-design-png-image_901868.jpg">
+    <title>Dashboard | Edeonaut DMS</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+
+<body>
+
+    <nav class="navbar">
+        <div class="logo"><a href="../index.html"><img style="width: 235px;" src="../pn54.png"></a></div>
+
+        <ul class="nav-links">
+            <li><a href="dashboard.html">Dashboard</a></li>
+            <li class="dropdown">
+                <span class="drop-label">Databases &#9662;</span>
+                <ul class="dropdown-menu">
+                    <li><a href="../index.html">Employee Database</a></li>
+                    <li><a href="server-database.html">Server Database</a></li>
+                    <li><a href="clients.html">Clients</a></li>
+                    <li><a href="departments.html">Departments</a></li>
+                    <li><a href="assets.html">Assets</a></li>
+                </ul>
+            </li>
+            <li><a href="projects.html">Projects</a></li>
+            <li><a href="commits.html">Pull Requests &amp; Commits</a></li>
+            <li><a href="chat.html">Chat</a></li>
+            <li><a href="investors.html">Investors</a></li>
+        </ul>
+    </nav>
+
+
+    <div class="container dash">
+        <div>
+            <div class="dash-title">Company Dashboard</div>
+            <div class="dash-sub">Edeonaut Consultancy Services &middot; Overview</div>
+        </div>
+
+        <div class="stat-grid" id="stats"></div>
+
+        <div class="dash-panels">
+            <div class="panel" id="projectPanel">
+                <div class="panel-title">Project Portfolio</div>
+            </div>
+            <div class="panel" id="commitPanel">
+                <div class="panel-title">Recent Commits</div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <script src="../js/dashboard.js"></script>
+</body>
+</html>
