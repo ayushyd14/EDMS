@@ -1,6 +1,7 @@
 // ============================================================
 //  PROFILE PICTURES: edit these two lists, nothing else.
 //  Key = Emp Code OR full name (not case sensitive) / group name.
+//  Investors are matched by their name.
 //  Value = image path, relative to the html/ pages ("../images/...").
 //  Anyone not listed, or with a wrong path, keeps the grey placeholder.
 // ============================================================
@@ -51,22 +52,26 @@ const clearMembersBtn = document.getElementById("clearMembers");
 const cancelGroupBtn = document.getElementById("cancelGroup");
 const saveGroupBtn = document.getElementById("saveGroup");
 
-const GROUP_KEY = "__all__";     // built-in "All Employees" group
-const GROUP_PREFIX = "g:";       // custom groups are stored as g:<id>
-const MAX_MESSAGES = 200;        // per conversation
-const MAX_GROUP_REPLIES = 3;     // how many members answer in a group chat
+const GROUP_KEY = "__all__";              // built-in "All Employees"
+const INVESTORS_KEY = "__investors__";    // built-in "All Investors"
+const GROUP_PREFIX = "g:";                // custom groups are stored as g:<id>
+const INVESTOR_PREFIX = "inv:";           // investor contacts are keyed inv:<name>|<company>
+const MAX_MESSAGES = 200;                 // per conversation
+const MAX_GROUP_REPLIES = 3;              // how many members answer in a group chat
 
-let employees = loadEmployees();
+// Everyone you can chat with is a "person": { kind, key, name, ... }
+let employees = loadEmployees();          // kind "employee"
+let investors = loadInvestors();          // kind "investor"
 let groups = loadGroups();
 let conversations = loadConversations();
 let activeKey = GROUP_KEY;
 let filterText = "";
-const pending = {};              // conversationKey -> names currently "typing"
+const pending = {};                       // conversationKey -> names currently "typing"
 
-let editingGroupId = null;       // null = creating a new group
-let modalSelected = new Set();   // empCodes ticked in the group modal
+let editingGroupId = null;                // null = creating a new group
+let modalSelected = new Set();            // person keys ticked in the group modal
 
-// ---------- profile pictures (configured in js/profile-pics.js) ----------
+// ---------- profile pictures (configured at the top of this file) ----------
 
 function normalizeKey(text) {
     return String(text).trim().toLowerCase();
@@ -78,11 +83,11 @@ function buildLookup(source) {
     return lookup;
 }
 
-const employeePics = buildLookup(typeof PROFILE_PICS !== "undefined" ? PROFILE_PICS : {});
+const personPics = buildLookup(typeof PROFILE_PICS !== "undefined" ? PROFILE_PICS : {});
 const groupPics = buildLookup(typeof GROUP_PICS !== "undefined" ? GROUP_PICS : {});
 
-function getEmployeePic(emp) {
-    return employeePics[normalizeKey(emp.empCode)] || employeePics[normalizeKey(emp.fullName)] || null;
+function getPersonPic(person) {
+    return personPics[normalizeKey(person.key)] || personPics[normalizeKey(person.name)] || null;
 }
 
 function getGroupPic(name) {
@@ -112,7 +117,35 @@ function loadJSON(key, fallback) {
 
 function loadEmployees() {
     const data = loadJSON("employeeData", []);
-    return Array.isArray(data) ? data : [];
+    if (!Array.isArray(data)) return [];
+    return data
+        .filter(e => e && e.fullName && e.empCode)
+        .map(e => ({
+            kind: "employee",
+            key: String(e.empCode),
+            name: e.fullName,
+            country: e.country || "",
+            designation: e.designation || ""
+        }));
+}
+
+function loadInvestors() {
+    const data = loadJSON("investorData", []);
+    if (!Array.isArray(data)) return [];
+    return data
+        .filter(i => i && i.investorName)
+        .map(i => ({
+            kind: "investor",
+            key: INVESTOR_PREFIX + i.investorName + "|" + (i.company || ""),
+            name: i.investorName,
+            company: i.company || "",
+            investment: i.investment || "",
+            stake: i.stake || ""
+        }));
+}
+
+function allPeople() {
+    return employees.concat(investors);
 }
 
 function loadGroups() {
@@ -148,45 +181,50 @@ function isCustomGroupKey(key) {
     return key.startsWith(GROUP_PREFIX);
 }
 
+function isBuiltInGroupKey(key) {
+    return key === GROUP_KEY || key === INVESTORS_KEY;
+}
+
 function getActiveGroup() {
     if (!isCustomGroupKey(activeKey)) return null;
     return groups.find(g => GROUP_PREFIX + g.id === activeKey) || null;
 }
 
-function getActiveEmployee() {
-    if (activeKey === GROUP_KEY || isCustomGroupKey(activeKey)) return null;
-    return employees.find(e => e.empCode === activeKey) || null;
+function getActivePerson() {
+    if (isBuiltInGroupKey(activeKey) || isCustomGroupKey(activeKey)) return null;
+    return allPeople().find(p => p.key === activeKey) || null;
 }
 
 function getGroupMembers(group) {
-    return employees.filter(e => group.members.includes(e.empCode));
+    return allPeople().filter(p => group.members.includes(p.key));
 }
 
 function isGroupChat() {
-    return activeKey === GROUP_KEY || isCustomGroupKey(activeKey);
+    return isBuiltInGroupKey(activeKey) || isCustomGroupKey(activeKey);
 }
 
 // Who can answer in the open conversation
 function getResponderPool() {
     if (activeKey === GROUP_KEY) return employees;
+    if (activeKey === INVESTORS_KEY) return investors;
     const group = getActiveGroup();
     if (group) return getGroupMembers(group);
-    const emp = getActiveEmployee();
-    return emp ? [emp] : [];
+    const person = getActivePerson();
+    return person ? [person] : [];
 }
 
 function ensureValidActiveKey() {
-    if (activeKey === GROUP_KEY) return;
-    if (isCustomGroupKey(activeKey) ? !getActiveGroup() : !getActiveEmployee()) {
+    if (isBuiltInGroupKey(activeKey)) return;
+    if (isCustomGroupKey(activeKey) ? !getActiveGroup() : !getActivePerson()) {
         activeKey = GROUP_KEY;
     }
 }
 
-function matchesQuery(emp, query) {
-    return !query ||
-        (emp.fullName || "").toLowerCase().includes(query) ||
-        (emp.empCode || "").toLowerCase().includes(query) ||
-        (emp.country || "").toLowerCase().includes(query);
+function matchesQuery(person, query) {
+    if (!query) return true;
+    const fields = [person.name, person.country, person.designation, person.company];
+    if (person.kind === "employee") fields.push(person.key); // Emp Code
+    return fields.some(f => (f || "").toLowerCase().includes(query));
 }
 
 // ---------- rendering ----------
@@ -213,6 +251,13 @@ function buildContact(name, key, isGroup, picUrl) {
     return item;
 }
 
+function addSection(text) {
+    const heading = document.createElement("li");
+    heading.className = "contact-section";
+    heading.textContent = text;
+    contactList.appendChild(heading);
+}
+
 function addNote(text) {
     const note = document.createElement("li");
     note.className = "contact-empty";
@@ -223,47 +268,69 @@ function addNote(text) {
 function renderContacts() {
     contactList.replaceChildren();
 
+    addSection("Groups");
     contactList.appendChild(buildContact("All Employees", GROUP_KEY, true, getGroupPic("All Employees")));
+    contactList.appendChild(buildContact("All Investors", INVESTORS_KEY, true, getGroupPic("All Investors")));
 
     const query = filterText.trim().toLowerCase();
 
     const groupMatches = groups.filter(g => !query || g.name.toLowerCase().includes(query));
     groupMatches.forEach(g => contactList.appendChild(buildContact(g.name, GROUP_PREFIX + g.id, true, getGroupPic(g.name))));
 
-    if (employees.length === 0) {
-        addNote("No employees yet. Add some on the Employee Database page.");
+    if (employees.length === 0 && investors.length === 0) {
+        addNote("No employees or investors yet. Add some on the Employee Database or Investors page.");
         return;
     }
 
-    const matches = employees.filter(e => matchesQuery(e, query));
-    if (matches.length === 0 && groupMatches.length === 0) {
+    const employeeMatches = employees.filter(p => matchesQuery(p, query));
+    const investorMatches = investors.filter(p => matchesQuery(p, query));
+
+    if (employeeMatches.length === 0 && investorMatches.length === 0 && groupMatches.length === 0) {
         addNote("Nothing matches your filter.");
         return;
     }
 
-    matches.forEach(emp => contactList.appendChild(buildContact(emp.fullName, emp.empCode, false, getEmployeePic(emp))));
+    if (employeeMatches.length > 0) {
+        addSection("Employees");
+        employeeMatches.forEach(p => contactList.appendChild(buildContact(p.name, p.key, false, getPersonPic(p))));
+    }
+
+    if (investorMatches.length > 0) {
+        addSection("Investors");
+        investorMatches.forEach(p => contactList.appendChild(buildContact(p.name, p.key, false, getPersonPic(p))));
+    }
 }
 
 function renderHeader() {
     const group = getActiveGroup();
-    const emp = getActiveEmployee();
+    const person = getActivePerson();
 
     chatAvatar.className = "avatar avatar-lg" + (isGroupChat() ? " avatar-group" : "");
     chatAvatar.style.backgroundImage = "";
     delete chatAvatar.dataset.pic;
 
-    const headerPic = group ? getGroupPic(group.name)
-        : emp ? getEmployeePic(emp)
-        : getGroupPic("All Employees");
+    let title = "All Employees";
+    let headerPic = getGroupPic("All Employees");
+
+    if (group) {
+        title = group.name;
+        headerPic = getGroupPic(group.name);
+    } else if (person) {
+        title = person.name;
+        headerPic = getPersonPic(person);
+    } else if (activeKey === INVESTORS_KEY) {
+        title = "All Investors";
+        headerPic = getGroupPic("All Investors");
+    }
+
+    chatTitle.textContent = title;
     if (headerPic) setAvatarImage(chatAvatar, headerPic);
 
     if (group) {
-        const names = getGroupMembers(group).map(m => m.fullName);
-        chatTitle.textContent = group.name;
+        const names = getGroupMembers(group).map(m => m.name);
         chatSub.textContent = names.length ? "Members: " + names.join(", ") : "No members left in this group";
         chatSub.hidden = false;
     } else {
-        chatTitle.textContent = emp ? emp.fullName : "All Employees";
         chatSub.textContent = "";
         chatSub.hidden = true;
     }
@@ -272,16 +339,20 @@ function renderHeader() {
     deleteGroupBtn.hidden = !group;
 }
 
+function emptyChatMessage() {
+    if (activeKey === GROUP_KEY) return "No employees yet. Add some on the Employee Database page.";
+    if (activeKey === INVESTORS_KEY) return "No investors yet. Add some on the Investors page.";
+    return "This group has no members left. Use Edit Group to add some.";
+}
+
 function renderMessages() {
     chatBox.replaceChildren();
 
     const list = conversations[activeKey] || [];
     const pool = getResponderPool();
 
-    if (employees.length === 0) {
-        showEmpty("No employees to chat with yet. Add some on the Employee Database page.");
-    } else if (pool.length === 0) {
-        showEmpty("This group has no employees left. Use Edit Group to add members.");
+    if (pool.length === 0) {
+        showEmpty(emptyChatMessage());
     } else if (list.length === 0) {
         showEmpty("No messages yet. Say something!");
     } else {
@@ -353,7 +424,7 @@ function closeGroupModal() {
 
 function getShownMembers() {
     const query = memberFilter.value.trim().toLowerCase();
-    return employees.filter(e => matchesQuery(e, query));
+    return allPeople().filter(p => matchesQuery(p, query));
 }
 
 function updateSelectedCount() {
@@ -364,10 +435,10 @@ function renderMemberList() {
     memberList.replaceChildren();
     updateSelectedCount();
 
-    if (employees.length === 0) {
+    if (allPeople().length === 0) {
         const none = document.createElement("div");
         none.className = "member-empty";
-        none.textContent = "No employees yet. Add some on the Employee Database page.";
+        none.textContent = "No employees or investors yet.";
         memberList.appendChild(none);
         return;
     }
@@ -376,33 +447,33 @@ function renderMemberList() {
     if (shown.length === 0) {
         const none = document.createElement("div");
         none.className = "member-empty";
-        none.textContent = "No employees match.";
+        none.textContent = "Nobody matches.";
         memberList.appendChild(none);
         return;
     }
 
-    shown.forEach(emp => {
+    shown.forEach(person => {
         const row = document.createElement("label");
         row.className = "member";
 
         const box = document.createElement("input");
         box.type = "checkbox";
-        box.checked = modalSelected.has(emp.empCode);
+        box.checked = modalSelected.has(person.key);
         box.addEventListener("change", () => {
-            if (box.checked) modalSelected.add(emp.empCode);
-            else modalSelected.delete(emp.empCode);
+            if (box.checked) modalSelected.add(person.key);
+            else modalSelected.delete(person.key);
             updateSelectedCount();
         });
 
         const name = document.createElement("span");
-        name.textContent = emp.fullName;
+        name.textContent = person.name;
 
-        const country = document.createElement("small");
-        country.textContent = emp.country;
+        const detail = document.createElement("small");
+        detail.textContent = person.kind === "investor" ? "Investor · " + person.company : person.country;
 
         row.appendChild(box);
         row.appendChild(name);
-        row.appendChild(country);
+        row.appendChild(detail);
         memberList.appendChild(row);
     });
 }
@@ -414,9 +485,9 @@ function saveGroup() {
         return;
     }
 
-    const members = employees.filter(e => modalSelected.has(e.empCode)).map(e => e.empCode);
+    const members = allPeople().filter(p => modalSelected.has(p.key)).map(p => p.key);
     if (members.length === 0) {
-        alert("Pick at least one employee.");
+        alert("Pick at least one person.");
         return;
     }
 
@@ -443,15 +514,22 @@ function saveGroup() {
     selectConversation(key);
 }
 
-// ---------- engineer replies ----------
+// ---------- replies ----------
 
 function pick(list) {
     return list[Math.floor(Math.random() * list.length)];
 }
 
-function firstName(emp) {
-    return (emp.fullName || "").split(" ")[0] || "me";
+function firstName(person) {
+    return (person.name || "").split(" ")[0] || "me";
 }
+
+function formatMoney(value) {
+    const n = Number(value);
+    return isNaN(n) ? String(value) : n.toLocaleString("en-US");
+}
+
+// -- engineers (employees)
 
 function serverReply() {
     const servers = loadJSON("serverData", []);
@@ -476,7 +554,7 @@ function commitReply() {
         " on " + latest.branch + ", dated " + latest.commitDate + ".";
 }
 
-const rules = [
+const engineerRules = [
     {
         test: /\b(salary|pay|raise|bonus|appraisal)\b/,
         reply: ["That's one for HR, not me.", "I just write code. Ask HR about pay."]
@@ -537,42 +615,136 @@ const rules = [
     },
     {
         test: /\b(hi|hello|hey|yo|sup|hola|namaste)\b/,
-        reply: emp => pick([
-            "Hey! " + firstName(emp) + " here. What's up?",
+        reply: person => pick([
+            "Hey! " + firstName(person) + " here. What's up?",
             "Hello! Currently waiting on a build, so go ahead.",
             "Hey, give me a sec, just finishing a merge."
         ])
     }
 ];
 
-const fallbackReplies = [
+const engineerFallbacks = [
     "Interesting. Can you give me more context?",
     "Let me check and get back to you.",
     "I'll look into it. Can you open a ticket so it doesn't get lost?",
     "Works on my machine. Can you send the exact steps?"
 ];
 
-function getReply(emp, text) {
-    const lower = text.toLowerCase();
-    for (const rule of rules) {
-        if (rule.test.test(lower)) {
-            return typeof rule.reply === "function" ? rule.reply(emp) : pick(rule.reply);
-        }
-    }
-    return pick(fallbackReplies);
+// -- investors
+
+function investmentReply(person) {
+    return "I have $" + formatMoney(person.investment) + " in " + person.company + ". I expect to see it working hard.";
 }
 
-function scheduleReply(key, emp, userText, delay) {
+function stakeReply(person) {
+    return "My stake in " + person.company + " is " + person.stake + "%. Talk to me before anything dilutes it.";
+}
+
+const investorRules = [
+    { test: /\b(invest(ed|ment|ments|ing)?|money|funds?|funding|capital|amount|cheque)\b/, reply: investmentReply },
+    { test: /\b(stake|equity|ownership|shares?|dilut\w*)\b/, reply: stakeReply },
+    {
+        test: /\b(returns?|roi|profits?|dividends?|payouts?|exit|ipo)\b/,
+        reply: [
+            "Returns come at exit, not before. What's the path to one?",
+            "I'm looking at a three to five year horizon. Where are we on that?",
+            "Show me how this turns into a return."
+        ]
+    },
+    {
+        test: /\b(revenue|growth|metrics?|numbers?|mrr|arr|kpis?|sales|customers?)\b/,
+        reply: [
+            "Send me the latest revenue and growth numbers.",
+            "What are the month-on-month figures? I don't want a snapshot, I want a trend.",
+            "Numbers first, story second."
+        ]
+    },
+    {
+        test: /\b(burn|runway|cash|budget|costs?|expenses?)\b/,
+        reply: ["What's the current burn rate, and how many months of runway is that?", "Keep costs tight. Send me the budget."]
+    },
+    {
+        test: /\b(valuation|round|series [abc]|seed|raise|raising|cap table|term sheet)\b/,
+        reply: ["At what valuation? I'd want to see the cap table first.", "Send the term sheet. My lawyers will go through it."]
+    },
+    {
+        test: /\b(pitch|deck|proposal|plan|roadmap|strategy)\b/,
+        reply: ["Send the deck. Keep it under fifteen slides.", "What does the roadmap look like for the next two quarters?"]
+    },
+    {
+        test: /\b(meeting|call|board|agenda|sync|update)\b/,
+        reply: ["Let's put it on the calendar. Send the agenda first.", "I can do a short call. Keep it to the point."]
+    },
+    {
+        test: /\b(team|hire|hiring|talent|employees?)\b/,
+        reply: ["I back people first. Who's on the team?", "Are we hiring ahead of revenue? I'd want to understand why."]
+    },
+    {
+        test: /\b(risks?|competitors?|competition|market)\b/,
+        reply: ["What's the biggest risk right now, and what's the plan for it?", "Who are the competitors, and why do we win?"]
+    },
+    {
+        test: /\b(salary|pay|payroll)\b/,
+        reply: ["Keep payroll in line with the budget. Send me the figures."]
+    },
+    {
+        test: /\b(servers?|uptime|downtime|outage|bugs?|deploy(ed|ment)?)\b/,
+        reply: ["That's engineering's call, but tell me if it's costing us customers.", "Is the downtime hurting revenue? That's what I care about."]
+    },
+    {
+        test: /\b(thanks?|thank you|thx|cheers)\b/,
+        reply: ["Of course. Keep me posted.", "Good. Send updates regularly."]
+    },
+    {
+        test: /\b(coffee|lunch|dinner)\b/,
+        reply: ["Happy to. Bring the numbers along.", "Lunch works. Let's talk about the quarter."]
+    },
+    {
+        test: /\b(bye|goodbye|cya|later|good night)\b/,
+        reply: ["Goodbye. Send me that update.", "Talk soon."]
+    },
+    {
+        test: /\b(hi|hello|hey|yo|sup|hola|namaste)\b/,
+        reply: person => pick([
+            "Hello. " + firstName(person) + " here. What do you have for me?",
+            "Hi. Any updates on the numbers?",
+            "Hello. Make it quick, I have another call soon."
+        ])
+    }
+];
+
+const investorFallbacks = [
+    "Interesting. What does it do for the bottom line?",
+    "Walk me through the numbers.",
+    "What's the plan for the next quarter?",
+    "I'll need to run this by my partners."
+];
+
+function getReply(person, text) {
+    const investor = person.kind === "investor";
+    const rules = investor ? investorRules : engineerRules;
+    const fallbacks = investor ? investorFallbacks : engineerFallbacks;
+    const lower = text.toLowerCase();
+
+    for (const rule of rules) {
+        if (rule.test.test(lower)) {
+            return typeof rule.reply === "function" ? rule.reply(person) : pick(rule.reply);
+        }
+    }
+    return pick(fallbacks);
+}
+
+function scheduleReply(key, person, userText, delay) {
     if (!pending[key]) pending[key] = [];
-    pending[key].push(emp.fullName);
+    pending[key].push(person.name);
     updateTyping();
 
     setTimeout(() => {
         const names = pending[key] || [];
-        const index = names.indexOf(emp.fullName);
+        const index = names.indexOf(person.name);
         if (index !== -1) names.splice(index, 1);
 
-        addMessage(key, { mine: false, from: emp.fullName, text: getReply(emp, userText), time: Date.now() });
+        addMessage(key, { mine: false, from: person.name, text: getReply(person, userText), time: Date.now() });
 
         if (activeKey === key) {
             renderMessages();
@@ -599,8 +771,8 @@ chatForm.addEventListener("submit", (event) => {
         ? [...pool].sort(() => Math.random() - 0.5).slice(0, MAX_GROUP_REPLIES)
         : pool;
 
-    responders.forEach((emp, i) => {
-        scheduleReply(key, emp, text, 800 + i * 900 + Math.random() * 700);
+    responders.forEach((person, i) => {
+        scheduleReply(key, person, text, 800 + i * 900 + Math.random() * 700);
     });
 });
 
@@ -641,7 +813,7 @@ deleteGroupBtn.addEventListener("click", () => {
 memberFilter.addEventListener("input", renderMemberList);
 
 selectShownBtn.addEventListener("click", () => {
-    getShownMembers().forEach(e => modalSelected.add(e.empCode));
+    getShownMembers().forEach(p => modalSelected.add(p.key));
     renderMemberList();
 });
 
@@ -661,21 +833,17 @@ document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && !groupModal.hidden) closeGroupModal();
 });
 
-// Keep in sync with other tabs (employees, groups and messages)
+// Keep in sync with other tabs (employees, investors, groups and messages)
 window.addEventListener("storage", (event) => {
-    if (event.key === "employeeData") {
-        employees = loadEmployees();
+    if (event.key === "employeeData" || event.key === "investorData" || event.key === "chatGroups") {
+        if (event.key === "employeeData") employees = loadEmployees();
+        if (event.key === "investorData") investors = loadInvestors();
+        if (event.key === "chatGroups") groups = loadGroups();
         ensureValidActiveKey();
         renderContacts();
         renderHeader();
         renderMessages();
         if (!groupModal.hidden) renderMemberList();
-    } else if (event.key === "chatGroups") {
-        groups = loadGroups();
-        ensureValidActiveKey();
-        renderContacts();
-        renderHeader();
-        renderMessages();
     } else if (event.key === "chatData") {
         conversations = loadConversations();
         renderMessages();

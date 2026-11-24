@@ -63,6 +63,16 @@
     text-align: center;
 }
 
+.contact-section {
+    padding: 0.4rem 0.8rem;
+    background: #f4f4f4;
+    color: #777;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid #ddd;
+}
+
 .chat-main {
     width: 70%;
     height: calc(100vh - 130px);
