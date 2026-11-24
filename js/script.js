@@ -1,5 +1,6 @@
 const fullName = document.getElementById("fullName");
 const empCode = document.getElementById("empCode");
+const designation = document.getElementById("designation");
 const country = document.getElementById("country");
 const salary = document.getElementById("salary");
 const employeeList = document.getElementById("employeeList").querySelector("tbody");
@@ -13,7 +14,7 @@ form.addEventListener("submit", (event) => {
 });
 
 const onFormSubmit = () => {
-    if(!fullName.value.trim() || !empCode.value.trim() || !country.value.trim() || !salary.value.trim() ){
+    if(!fullName.value.trim() || !empCode.value.trim() || !designation.value.trim() || !country.value.trim() || !salary.value.trim() ){
         alert("Please fill in all Fields.");
         return;
     }
@@ -32,6 +33,7 @@ const readFormData = () => {
     return{
         fullName: fullName.value.trim(),
         empCode: empCode.value.trim(),
+        designation: designation.value.trim(),
         country: country.value.trim(),
         salary: salary.value.trim(),
     };
@@ -47,12 +49,15 @@ const insertData = (data) => {
     cell2.innerHTML = data.empCode;
 
     let cell3 = newRow.insertCell(2);
-    cell3.innerHTML = data.country;
+    cell3.textContent = data.designation || "";
 
     let cell4 = newRow.insertCell(3);
-    cell4.innerHTML = data.salary;
+    cell4.innerHTML = data.country;
 
     let cell5 = newRow.insertCell(4);
+    cell5.innerHTML = data.salary;
+
+    let cell6 = newRow.insertCell(5);
 
     const editBtn = document.createElement("span");
     editBtn.textContent = "Edit";
@@ -64,8 +69,8 @@ const insertData = (data) => {
     deleteBtn.classList.add("btn");
     deleteBtn.addEventListener("click", () => onDelete(newRow));
 
-    cell5.appendChild(editBtn);
-    cell5.appendChild(deleteBtn);
+    cell6.appendChild(editBtn);
+    cell6.appendChild(deleteBtn);
 
     saveToLocalStorage();
 };
@@ -73,6 +78,7 @@ const insertData = (data) => {
 const resetForm = () => {
     fullName.value = "";
     empCode.value = "";
+    designation.value = "";
     country.value = "";
     salary.value = "";
     selectedRow = null;
@@ -82,15 +88,17 @@ const onEdit = (td) => {
     selectedRow = td;
     fullName.value = selectedRow.cells[0].textContent;
     empCode.value = selectedRow.cells[1].textContent;
-    country.value = selectedRow.cells[2].textContent;
-    salary.value = selectedRow.cells[3].textContent;
+    designation.value = selectedRow.cells[2].textContent;
+    country.value = selectedRow.cells[3].textContent;
+    salary.value = selectedRow.cells[4].textContent;
 }
 
 const updateData = (formData) => {
     selectedRow.cells[0].textContent = formData.fullName;
     selectedRow.cells[1].textContent = formData.empCode;
-    selectedRow.cells[2].textContent = formData.country;
-    selectedRow.cells[3].textContent = formData.salary;
+    selectedRow.cells[2].textContent = formData.designation;
+    selectedRow.cells[3].textContent = formData.country;
+    selectedRow.cells[4].textContent = formData.salary;
     selectedRow = null;
 
     saveToLocalStorage();
@@ -111,8 +119,9 @@ const saveToLocalStorage = () => {
     const data = rows.map(row => ({
         fullName: row.cells[0].textContent,
         empCode: row.cells[1].textContent,
-        country: row.cells[2].textContent,
-        salary: row.cells[3].textContent,
+        designation: row.cells[2].textContent,
+        country: row.cells[3].textContent,
+        salary: row.cells[4].textContent,
     }));
     localStorage.setItem("employeeData", JSON.stringify(data));
 };
