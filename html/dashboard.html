@@ -8,8 +8,209 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="icon" href="https://png.pngtree.com/png-clipart/20190405/ourlarge/pngtree-letter-e-3d-company-logo-design-png-image_901868.jpg">
-    <title>Dashboard | Edeonaut DMS</title>
-    <link rel="stylesheet" href="../css/style.css">
+    <title>Investors | Edeonaut DMS</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'IBM Plex Serif', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            height: 100vh;
+            padding-top: 100px;
+        }
+
+        .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            width: 90%;
+            gap: 2rem;
+        }
+
+        .col-1 {
+            background-color: #eeeeee;
+            width: 50%;
+            padding: 2rem 3rem;
+            border-radius: 2px;
+        }
+
+        label {
+            font-size: 1rem;
+            font-weight: 100;
+            color: #000;
+        }
+
+        input,
+        select {
+            background: rgb(255, 255, 255);
+            outline: none;
+            border: 2px solid #3e252247;
+            width: 100%;
+            padding: 10px;
+            border-radius: 2px;
+            margin: 0.5rem 0;
+        }
+
+        .amount-row {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .amount-row input {
+            flex: 1;
+        }
+
+        .amount-row select {
+            width: 42%;
+        }
+
+        input[type="submit"] {
+            width: 50%;
+            display: block;
+            border: none;
+            font-weight: bold;
+            font-size: 18px;
+            padding: 10px;
+            cursor: pointer;
+        }
+
+        input[type="submit"]:hover {
+            background-color: #d9d9d9;
+        }
+
+
+        .col-2 {
+            width: 50%;
+        }
+
+        th {
+            background: url("https://videocdn.cdnpk.net/videos/389958d0-4f2a-5e18-b65e-ba7278fdd117/horizontal/thumbnails/small.jpg");
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: cover;
+            border: none;
+            color: #fff;
+            padding: 15px;
+        }
+
+        th + th {
+            border-left: 1px solid rgba(255, 255, 255, 0.6);
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        td {
+            border-bottom: 1px solid #000;
+            font-size: 0.7rem;
+            text-align: center;
+            font-weight: 400;
+        }
+
+        td + td {
+            border-left: 1px solid #000;
+        }
+
+        .btn {
+            font-size: 16px;
+            line-height: 2rem;
+            cursor: pointer;
+            margin-right: 6px;
+        }
+
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 70px;
+            background: url("https://videocdn.cdnpk.net/videos/389958d0-4f2a-5e18-b65e-ba7278fdd117/horizontal/thumbnails/small.jpg");
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: cover;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 5% 0 0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+        }
+
+        .logo a {
+            color: red;
+            font-size: 24px;
+            font-weight: 700;
+            text-decoration: none;
+            background: transparent;
+        }
+
+        .nav-links {
+            list-style: none;
+            display: flex;
+            gap: 30px;
+        }
+
+        .nav-links > li {
+            position: relative;
+            padding: 24px 0;
+        }
+
+        .nav-links a {
+            color: #fff;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .nav-links a:hover {
+            color: grey;
+            text-shadow: 2px 1px 1px #000;
+        }
+
+        .drop-label {
+            color: #fff;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: default;
+        }
+
+        .dropdown:hover .drop-label {
+            color: grey;
+            text-shadow: 2px 1px 1px #000;
+        }
+
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: -14px;
+            min-width: 220px;
+            list-style: none;
+            background: rgba(20, 20, 20, 0.96);
+            padding: 8px 0;
+            border-radius: 2px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        .dropdown:hover .dropdown-menu {
+            display: block;
+        }
+
+        .dropdown-menu a {
+            display: block;
+            padding: 10px 18px;
+            white-space: nowrap;
+        }
+    </style>
 </head>
 
 <body>
@@ -37,26 +238,238 @@
     </nav>
 
 
-    <div class="container dash">
-        <div>
-            <div class="dash-title">Company Dashboard</div>
-            <div class="dash-sub">Edeonaut Consultancy Services &middot; Overview</div>
+    <div class="container">
+        <div class="col-1">
+            <form id="form" autocomplete="off">
+                <div>
+                    <label>Investor Name</label>
+                    <input type="text" name="investorName" id="investorName">
+                </div>
+                <div>
+                    <label>Company</label>
+                    <input type="text" name="company" id="company">
+                </div>
+                <div>
+                    <label>Investment (in $)</label>
+                    <div class="amount-row">
+                        <input type="number" name="investment" id="investment" min="0" step="any" placeholder="e.g. 8">
+                        <select id="investmentUnit">
+                            <option value="1">Ones</option>
+                            <option value="1000">Thousand (K)</option>
+                            <option value="1000000">Million (M)</option>
+                            <option value="1000000000">Billion (B)</option>
+                            <option value="1000000000000">Trillion (T)</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label>Stake (%)</label>
+                    <input type="number" name="stake" id="stake" min="0" max="100" step="any">
+                </div>
+                <div class="action-button">
+                    <input type="submit" value="Submit">
+                </div>
+            </form>
         </div>
 
-        <div class="stat-grid" id="stats"></div>
 
-        <div class="dash-panels">
-            <div class="panel" id="projectPanel">
-                <div class="panel-title">Project Portfolio</div>
-            </div>
-            <div class="panel" id="commitPanel">
-                <div class="panel-title">Recent Commits</div>
-            </div>
+        <div class="col-2">
+            <table class="list" id="investorList">
+                <thead>
+                    <tr>
+                        <th>Investor Name</th>
+                        <th>Company</th>
+                        <th>Investment ($)</th>
+                        <th>Stake (%)</th>
+                        <th>Edit/Delete</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
         </div>
     </div>
 
 
+    <script>
+        const investorName = document.getElementById("investorName");
+        const company = document.getElementById("company");
+        const investment = document.getElementById("investment");
+        const investmentUnit = document.getElementById("investmentUnit");
+        const stake = document.getElementById("stake");
+        const investorList = document.getElementById("investorList").querySelector("tbody");
+        const form = document.getElementById("form");
 
-    <script src="../js/dashboard.js"></script>
+        let selectedRow = null;
+
+        // ---- money helpers: the full number is stored (row.dataset.raw), a short form is shown ----
+
+        const UNITS = [
+            { symbol: "T", size: 1e12 },
+            { symbol: "B", size: 1e9 },
+            { symbol: "M", size: 1e6 },
+            { symbol: "K", size: 1e3 },
+        ];
+
+        const parseMoney = (value) => {
+            const n = Number(String(value).replace(/[^0-9.]/g, ""));
+            return isNaN(n) ? null : n;
+        };
+
+        const formatMoney = (n) => {
+            for (const u of UNITS) {
+                if (n >= u.size) return +(n / u.size).toFixed(2) + u.symbol;
+            }
+            return n.toLocaleString("en-US");
+        };
+
+        // raw value (string) -> text shown in the table
+        const displayMoney = (raw) => {
+            const n = parseMoney(raw);
+            return n === null ? String(raw) : formatMoney(n);
+        };
+
+        form.addEventListener("submit", (event) => {
+            event.preventDefault();
+            onFormSubmit();
+        });
+
+        const onFormSubmit = () => {
+            if (!investorName.value.trim() || !company.value.trim() || !investment.value.trim() || !stake.value.trim()) {
+                alert("Please fill in all Fields.");
+                return;
+            }
+
+            const amount = Number(investment.value);
+            if (isNaN(amount) || amount < 0) {
+                alert("Investment can't be negative.");
+                return;
+            }
+
+            const stakeValue = Number(stake.value);
+            if (isNaN(stakeValue) || stakeValue < 0 || stakeValue > 100) {
+                alert("Stake must be between 0 and 100.");
+                return;
+            }
+
+            const formData = readFormData();
+
+            if (selectedRow == null) {
+                insertData(formData);
+            } else {
+                updateData(formData);
+            }
+            resetForm();
+        };
+
+        const readFormData = () => {
+            const total = Math.round(Number(investment.value) * Number(investmentUnit.value) * 100) / 100;
+            return {
+                investorName: investorName.value.trim(),
+                company: company.value.trim(),
+                investment: String(total),
+                stake: stake.value.trim(),
+            };
+        };
+
+        const insertData = (data, shouldSave = true) => {
+            const newRow = investorList.insertRow();
+            newRow.dataset.raw = data.investment;
+
+            newRow.insertCell(0).textContent = data.investorName;
+            newRow.insertCell(1).textContent = data.company;
+            newRow.insertCell(2).textContent = displayMoney(data.investment);
+            newRow.insertCell(3).textContent = data.stake;
+
+            const cell5 = newRow.insertCell(4);
+
+            const editBtn = document.createElement("span");
+            editBtn.textContent = "Edit";
+            editBtn.classList.add("btn");
+            editBtn.addEventListener("click", () => onEdit(newRow));
+
+            const deleteBtn = document.createElement("span");
+            deleteBtn.textContent = "Delete";
+            deleteBtn.classList.add("btn");
+            deleteBtn.addEventListener("click", () => onDelete(newRow));
+
+            cell5.appendChild(editBtn);
+            cell5.appendChild(deleteBtn);
+
+            if (shouldSave) saveToLocalStorage();
+        };
+
+        const resetForm = () => {
+            investorName.value = "";
+            company.value = "";
+            investment.value = "";
+            investmentUnit.value = "1";
+            stake.value = "";
+            selectedRow = null;
+        };
+
+        const onEdit = (row) => {
+            selectedRow = row;
+            investorName.value = selectedRow.cells[0].textContent;
+            company.value = selectedRow.cells[1].textContent;
+
+            // split the stored number back into amount + biggest fitting unit
+            const raw = parseMoney(selectedRow.dataset.raw);
+            let size = 1;
+            let amount = raw === null ? "" : raw;
+            if (raw !== null) {
+                for (const u of UNITS) {
+                    if (raw >= u.size) {
+                        size = u.size;
+                        break;
+                    }
+                }
+                amount = +(raw / size).toFixed(4);
+            }
+            investment.value = amount;
+            investmentUnit.value = String(size);
+
+            stake.value = selectedRow.cells[3].textContent;
+        };
+
+        const updateData = (formData) => {
+            selectedRow.dataset.raw = formData.investment;
+            selectedRow.cells[0].textContent = formData.investorName;
+            selectedRow.cells[1].textContent = formData.company;
+            selectedRow.cells[2].textContent = displayMoney(formData.investment);
+            selectedRow.cells[3].textContent = formData.stake;
+            selectedRow = null;
+
+            saveToLocalStorage();
+        };
+
+        const onDelete = (row) => {
+            if (confirm("Are you sure you want to delete this record?")) {
+                row.remove();
+                resetForm();
+                saveToLocalStorage();
+            }
+        };
+
+        // ---- localStorage persistence (its own key, separate from the other pages) ----
+
+        const saveToLocalStorage = () => {
+            const rows = [...investorList.querySelectorAll("tr")];
+            const data = rows.map(row => ({
+                investorName: row.cells[0].textContent,
+                company: row.cells[1].textContent,
+                investment: row.dataset.raw || row.cells[2].textContent,
+                stake: row.cells[3].textContent,
+            }));
+            localStorage.setItem("investorData", JSON.stringify(data));
+        };
+
+        const loadFromLocalStorage = () => {
+            const data = JSON.parse(localStorage.getItem("investorData")) || [];
+            data.forEach(item => insertData(item, false));
+        };
+
+        loadFromLocalStorage();
+    </script>
 </body>
+
 </html>

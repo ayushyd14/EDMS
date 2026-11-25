@@ -14,6 +14,20 @@ const el = (tag, className, text) => {
     return node;
 };
 
+const UNITS = [
+    { symbol: "T", size: 1e12 },
+    { symbol: "B", size: 1e9 },
+    { symbol: "M", size: 1e6 },
+    { symbol: "K", size: 1e3 },
+];
+
+const formatMoney = (n) => {
+    for (const u of UNITS) {
+        if (n >= u.size) return +(n / u.size).toFixed(2) + u.symbol;
+    }
+    return n.toLocaleString("en-US");
+};
+
 const employees = read("employeeData");
 const servers = read("serverData");
 const projects = read("projectData");
@@ -37,7 +51,7 @@ const stats = [
     [online + " / " + servers.length, "Servers Online"],
     [assets.length, "Assets"],
     [investors.length, "Investors"],
-    ["$" + totalInvestment.toLocaleString("en-US"), "Total Investment"],
+    ["$" + formatMoney(totalInvestment), "Total Investment"],
 ];
 
 const statGrid = document.getElementById("stats");
