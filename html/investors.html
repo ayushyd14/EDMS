@@ -47,7 +47,8 @@
             color: #000;
         }
 
-        input {
+        input,
+        select {
             background: rgb(255, 255, 255);
             outline: none;
             border: 2px solid #3e252247;
@@ -55,6 +56,19 @@
             padding: 10px;
             border-radius: 2px;
             margin: 0.5rem 0;
+        }
+
+        .amount-row {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .amount-row input {
+            flex: 1;
+        }
+
+        .amount-row select {
+            width: 42%;
         }
 
         input[type="submit"] {
@@ -237,7 +251,16 @@
                 </div>
                 <div>
                     <label>Investment (in $)</label>
-                    <input type="string" name="investment" id="investment" min="0">
+                    <div class="amount-row">
+                        <input type="number" name="investment" id="investment" min="0" step="any" placeholder="e.g. 8">
+                        <select id="investmentUnit">
+                            <option value="1">Ones</option>
+                            <option value="1000">Thousand (K)</option>
+                            <option value="1000000">Million (M)</option>
+                            <option value="1000000000">Billion (B)</option>
+                            <option value="1000000000000">Trillion (T)</option>
+                        </select>
+                    </div>
                 </div>
                 <div>
                     <label>Stake (%)</label>
@@ -271,11 +294,39 @@
         const investorName = document.getElementById("investorName");
         const company = document.getElementById("company");
         const investment = document.getElementById("investment");
+        const investmentUnit = document.getElementById("investmentUnit");
         const stake = document.getElementById("stake");
         const investorList = document.getElementById("investorList").querySelector("tbody");
         const form = document.getElementById("form");
 
         let selectedRow = null;
+
+        // ---- money helpers: the full number is stored (row.dataset.raw), a short form is shown ----
+
+        const UNITS = [
+            { symbol: "T", size: 1e12 },
+            { symbol: "B", size: 1e9 },
+            { symbol: "M", size: 1e6 },
+            { symbol: "K", size: 1e3 },
+        ];
+
+        const parseMoney = (value) => {
+            const n = Number(String(value).replace(/[^0-9.]/g, ""));
+            return isNaN(n) ? null : n;
+        };
+
+        const formatMoney = (n) => {
+            for (const u of UNITS) {
+                if (n >= u.size) return +(n / u.size).toFixed(2) + u.symbol;
+            }
+            return n.toLocaleString("en-US");
+        };
+
+        // raw value (string) -> text shown in the table
+        const displayMoney = (raw) => {
+            const n = parseMoney(raw);
+            return n === null ? String(raw) : formatMoney(n);
+        };
 
         form.addEventListener("submit", (event) => {
             event.preventDefault();
@@ -288,7 +339,8 @@
                 return;
             }
 
-            if (Number(investment.value) < 0) {
+            const amount = Number(investment.value);
+            if (isNaN(amount) || amount < 0) {
                 alert("Investment can't be negative.");
                 return;
             }
@@ -310,20 +362,22 @@
         };
 
         const readFormData = () => {
+            const total = Math.round(Number(investment.value) * Number(investmentUnit.value) * 100) / 100;
             return {
                 investorName: investorName.value.trim(),
                 company: company.value.trim(),
-                investment: investment.value.trim(),
+                investment: String(total),
                 stake: stake.value.trim(),
             };
         };
 
         const insertData = (data, shouldSave = true) => {
             const newRow = investorList.insertRow();
+            newRow.dataset.raw = data.investment;
 
             newRow.insertCell(0).textContent = data.investorName;
             newRow.insertCell(1).textContent = data.company;
-            newRow.insertCell(2).textContent = data.investment;
+            newRow.insertCell(2).textContent = displayMoney(data.investment);
             newRow.insertCell(3).textContent = data.stake;
 
             const cell5 = newRow.insertCell(4);
@@ -348,6 +402,7 @@
             investorName.value = "";
             company.value = "";
             investment.value = "";
+            investmentUnit.value = "1";
             stake.value = "";
             selectedRow = null;
         };
@@ -356,14 +411,31 @@
             selectedRow = row;
             investorName.value = selectedRow.cells[0].textContent;
             company.value = selectedRow.cells[1].textContent;
-            investment.value = selectedRow.cells[2].textContent;
+
+            // split the stored number back into amount + biggest fitting unit
+            const raw = parseMoney(selectedRow.dataset.raw);
+            let size = 1;
+            let amount = raw === null ? "" : raw;
+            if (raw !== null) {
+                for (const u of UNITS) {
+                    if (raw >= u.size) {
+                        size = u.size;
+                        break;
+                    }
+                }
+                amount = +(raw / size).toFixed(4);
+            }
+            investment.value = amount;
+            investmentUnit.value = String(size);
+
             stake.value = selectedRow.cells[3].textContent;
         };
 
         const updateData = (formData) => {
+            selectedRow.dataset.raw = formData.investment;
             selectedRow.cells[0].textContent = formData.investorName;
             selectedRow.cells[1].textContent = formData.company;
-            selectedRow.cells[2].textContent = formData.investment;
+            selectedRow.cells[2].textContent = displayMoney(formData.investment);
             selectedRow.cells[3].textContent = formData.stake;
             selectedRow = null;
 
@@ -385,7 +457,7 @@
             const data = rows.map(row => ({
                 investorName: row.cells[0].textContent,
                 company: row.cells[1].textContent,
-                investment: row.cells[2].textContent,
+                investment: row.dataset.raw || row.cells[2].textContent,
                 stake: row.cells[3].textContent,
             }));
             localStorage.setItem("investorData", JSON.stringify(data));
