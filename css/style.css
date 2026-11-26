@@ -101,6 +101,75 @@ td + td {
     margin-right: 6px;
 }
 
+/* ---- scrollable table box (search / sort / export live in the toolbar) ---- */
+
+.table-box {
+    background: #fff;
+    border: 2px solid #3e252247;
+    border-radius: 2px;
+}
+
+.table-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.6rem 0.8rem;
+    background: #eeeeee;
+    border-bottom: 2px solid #3e252247;
+}
+
+.table-search {
+    width: 240px;
+    margin: 0;
+    padding: 8px 10px;
+}
+
+.table-count {
+    flex: 1;
+    font-size: 0.8rem;
+    color: #555;
+}
+
+.tool-btn {
+    background: #fff;
+    border: 2px solid #3e252247;
+    border-radius: 2px;
+    font-size: 13px;
+    font-weight: bold;
+    padding: 7px 12px;
+    cursor: pointer;
+}
+
+.tool-btn:hover {
+    background: #d9d9d9;
+}
+
+.table-scroll {
+    max-height: calc(100vh - 240px);
+    overflow: auto;
+}
+
+.table-scroll th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+th.sortable {
+    cursor: pointer;
+    user-select: none;
+}
+
+th[data-sort="asc"]::after {
+    content: " \25B2";
+    font-size: 0.7em;
+}
+
+th[data-sort="desc"]::after {
+    content: " \25BC";
+    font-size: 0.7em;
+}
+
 /* ---- wide layout (tables with many columns) ---- */
 
 .container.wide .col-1 {
@@ -240,7 +309,7 @@ td + td {
     white-space: nowrap;
 }
 
-/* ---- dashboard ---- */
+/* ---- dashboard / profile ---- */
 
 .dash {
     flex-direction: column;
@@ -290,6 +359,7 @@ td + td {
 
 .panel {
     flex: 1;
+    min-width: 0;
     background: #eeeeee;
     padding: 1.2rem 1.6rem;
     border-radius: 2px;
@@ -298,6 +368,12 @@ td + td {
 .panel-title {
     font-weight: 700;
     margin-bottom: 0.8rem;
+}
+
+.panel-body {
+    max-height: 360px;
+    overflow-y: auto;
+    padding-right: 0.4rem;
 }
 
 .panel-empty {
@@ -344,4 +420,150 @@ td + td {
 .feed-meta {
     color: #555;
     font-size: 0.75rem;
+}
+
+.profile-head {
+    display: flex;
+    align-items: center;
+    gap: 1.2rem;
+    background: #eeeeee;
+    padding: 1.2rem 1.6rem;
+    border-radius: 2px;
+}
+
+.profile-head > div {
+    flex: 1;
+}
+
+.avatar.avatar-xl {
+    width: 96px;
+    height: 96px;
+}
+
+/* ---- chat user pill ---- */
+
+.user-pill-wrap {
+    position: relative;
+    margin-bottom: 0.9rem;
+}
+
+.user-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    width: 100%;
+    background: #fff;
+    border: 2px solid #3e252247;
+    border-radius: 999px;
+    padding: 4px 16px 4px 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: bold;
+    text-align: left;
+}
+
+.user-pill:hover {
+    background: #f0f0f0;
+}
+
+.user-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.user-arrow {
+    font-size: 0.8rem;
+    color: #555;
+}
+
+.user-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    background: #fff;
+    border: 2px solid #3e252247;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    z-index: 50;
+}
+
+.user-menu[hidden] {
+    display: none;
+}
+
+.user-menu a,
+.user-menu button {
+    display: block;
+    width: 100%;
+    padding: 10px 16px;
+    background: none;
+    border: none;
+    text-align: left;
+    font-size: 0.95rem;
+    color: #000;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.user-menu a:hover,
+.user-menu button:hover {
+    background: #f0f0f0;
+}
+
+/* ---- login ---- */
+
+body.login-page {
+    align-items: center;
+    padding-top: 0;
+}
+
+.login-card {
+    background: #eeeeee;
+    width: min(460px, 92vw);
+    max-height: 96vh;
+    overflow-y: auto;
+    padding: 2rem 2.5rem;
+    border-radius: 2px;
+}
+
+.login-logo {
+    display: block;
+    width: 100%;
+    max-width: 235px;
+    margin: 0 auto 1rem;
+}
+
+.login-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 0.8rem;
+}
+
+.login-note {
+    color: #555;
+    font-size: 0.85rem;
+    text-align: center;
+    margin-top: 1rem;
+}
+
+.form-error {
+    color: #c9433a;
+    font-size: 0.9rem;
+    margin: 0.4rem 0;
+}
+
+.form-error[hidden],
+.login-card form[hidden] {
+    display: none;
+}
+
+.login-card input[type="submit"] {
+    width: 100%;
+    margin-top: 1rem;
 }

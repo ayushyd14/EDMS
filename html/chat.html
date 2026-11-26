@@ -11,6 +11,8 @@
     <title>Chat | Edeonaut DMS</title>
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="../css/chat.css">
+    <script src="../js/pics.js"></script>
+    <script src="../js/app.js"></script>
 </head>
 
 <body>
@@ -40,6 +42,18 @@
 
     <div class="container">
         <div class="col-1 chat-side">
+            <div class="user-pill-wrap">
+                <button type="button" class="user-pill" id="userPill" aria-expanded="false">
+                    <span class="avatar" id="userAvatar"></span>
+                    <span class="user-name" id="userName"></span>
+                    <span class="user-arrow">&#9662;</span>
+                </button>
+                <div class="user-menu" id="userMenu" hidden>
+                    <a href="profile.html">Profile Dashboard</a>
+                    <button type="button" id="logoutBtn">Log out</button>
+                </div>
+            </div>
+
             <label>Filter</label>
             <input type="text" id="filterInput" placeholder="Search employees, investors or groups" autocomplete="off">
             <button type="button" id="newGroup" class="chat-btn new-group-btn">+ New Group</button>

@@ -10,6 +10,7 @@
     <link rel="icon" href="https://png.pngtree.com/png-clipart/20190405/ourlarge/pngtree-letter-e-3d-company-logo-design-png-image_901868.jpg">
     <title>Dashboard | Edeonaut DMS</title>
     <link rel="stylesheet" href="../css/style.css">
+    <script src="../js/app.js"></script>
 </head>
 
 <body>
@@ -40,17 +41,19 @@
     <div class="container dash">
         <div>
             <div class="dash-title">Company Dashboard</div>
-            <div class="dash-sub">Edeonaut Consultancy Services &middot; Overview</div>
+            <div class="dash-sub" id="dashSub">Edeonaut Consultancy Services &middot; Overview</div>
         </div>
 
         <div class="stat-grid" id="stats"></div>
 
         <div class="dash-panels">
-            <div class="panel" id="projectPanel">
+            <div class="panel">
                 <div class="panel-title">Project Portfolio</div>
+                <div class="panel-body" id="projectBody"></div>
             </div>
-            <div class="panel" id="commitPanel">
+            <div class="panel">
                 <div class="panel-title">Recent Commits</div>
+                <div class="panel-body" id="commitBody"></div>
             </div>
         </div>
     </div>

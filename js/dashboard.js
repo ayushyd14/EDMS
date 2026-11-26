@@ -28,6 +28,12 @@ const formatMoney = (n) => {
     return n.toLocaleString("en-US");
 };
 
+const me = Auth.current();
+if (me) {
+    document.getElementById("dashSub").textContent =
+        "Welcome back, " + me.fullName + " · Edeonaut Consultancy Services";
+}
+
 const employees = read("employeeData");
 const servers = read("serverData");
 const projects = read("projectData");
@@ -62,10 +68,10 @@ stats.forEach(([value, label]) => {
     statGrid.appendChild(card);
 });
 
-// project portfolio
-const projectPanel = document.getElementById("projectPanel");
+// project portfolio (scrollable box)
+const projectBody = document.getElementById("projectBody");
 if (projects.length === 0) {
-    projectPanel.appendChild(el("div", "panel-empty", "No projects yet. Add some on the Projects page."));
+    projectBody.appendChild(el("div", "panel-empty", "No projects yet. Add some on the Projects page."));
 } else {
     [...projects]
         .sort((a, b) => String(a.deadline).localeCompare(String(b.deadline)))
@@ -85,22 +91,22 @@ if (projects.length === 0) {
             row.appendChild(head);
             row.appendChild(el("div", "progress-sub", p.status + " · " + p.lead + " · due " + p.deadline));
             row.appendChild(bar);
-            projectPanel.appendChild(row);
+            projectBody.appendChild(row);
         });
 }
 
-// recent commits
-const commitPanel = document.getElementById("commitPanel");
+// recent commits (scrollable box)
+const commitBody = document.getElementById("commitBody");
 if (commits.length === 0) {
-    commitPanel.appendChild(el("div", "panel-empty", "No commits yet."));
+    commitBody.appendChild(el("div", "panel-empty", "No commits yet."));
 } else {
     [...commits]
         .sort((a, b) => String(b.commitDate).localeCompare(String(a.commitDate)))
-        .slice(0, 5)
+        .slice(0, 20)
         .forEach(c => {
             const item = el("div", "feed-item");
             item.appendChild(el("div", "", c.commitMessage));
             item.appendChild(el("div", "feed-meta", c.author + " · " + c.branch + " · " + c.commitDate));
-            commitPanel.appendChild(item);
+            commitBody.appendChild(item);
         });
 }

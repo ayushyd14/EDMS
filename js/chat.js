@@ -1,32 +1,4 @@
-// ============================================================
-//  PROFILE PICTURES: edit these two lists, nothing else.
-//  Key = Emp Code OR full name (not case sensitive) / group name.
-//  Investors are matched by their name.
-//  Value = image path, relative to the html/ pages ("../images/...").
-//  Anyone not listed, or with a wrong path, keeps the grey placeholder.
-// ============================================================
-const PROFILE_PICS = {
-    "190021": "../images/190021.jpg",   // Brad Q.
-    "210219": "../images/210219.jpg",   // V.C. Chandrapaul
-    "07032": "https://thumbs.dreamstime.com/b/asian-business-man-profile-icon-chinese-japanese-businessman-avatar-isolated-flat-vector-illustration-asian-business-man-108213215.jpg",   // Chris Harrison
-    "020002": "https://mir-s3-cdn-cf.behance.net/project_modules/hd/d95c1f148207527.62d1246c25004.jpg",   // Zuvloć Romilly
-    "150028": "https://static.vecteezy.com/system/resources/previews/055/281/758/non_2x/male-avatar-illustration-for-profile-or-projects-vector.jpg",   // Leo Cooper
-    "98004": "https://thumbs.dreamstime.com/b/asian-businessman-profile-icon-isolated-male-chinese-japanese-business-man-avatar-flat-vector-illustration-108617465.jpg",   // Vishy Sharma
-    "970001": "https://static.vecteezy.com/system/resources/previews/036/190/422/non_2x/old-business-man-blank-profile-photo-vector.jpg",   // Edwin Foster
-    "030009": "https://img.magnific.com/premium-vector/portrait-asian-person-casual-clothes-happy-young-man-avatar-male-face-head-chinese-korean-japanese-nationality-user-profile-flat-isolated-vector-illustration-white-background_633472-5682.jpg?semt=ais_hybrid&w=740&q=80",   // Shikaku Nakuru
-    "Warren Buffett (Berkshire Hathaway)": "https://www.givingpledge.org/wp-content/uploads/2025/03/Buffett_500x500.jpg",   // Shikaku Nakuru
-    "Mohammad bin Salman Al-Saud": "https://cdn.i-scmp.com/sites/default/files/styles/768x768/public/d8/images/methode/2019/12/13/6b06cb22-1ca7-11ea-8971-922fdc94075f_image_hires_132744.jpg?itok=XditGQBc&v=1576214873",   // Shikaku Nakuru
-    "Daniel Sundheim": "https://imageio.forbes.com/specials-images/imageserve/6063814730d15bbcd7ce7e1c/0x0.jpg?format=jpg&crop=1361,1362,x0,y435,safe&height=416&width=416&fit=bounds",   // Shikaku Nakuru
-    "Bill Ackman (Pershing Square)": "https://pershingsquaresparcholdings.com/wp-content/uploads/2020/06/Bill-Ackman-Photo-2026.jpg",   // Shikaku Nakuru
-    "21012": "https://thumbs.dreamstime.com/b/brown-hair-businesswoman-avatar-woman-face-profile-icon-concept-online-support-service-female-cartoon-character-portrait-brown-126956822.jpg",   // Shikaku Nakuru
-};
-
-const GROUP_PICS = {
-    "All Employees": "../images/all-employees.png",
-    "India-Japan Branch": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQd9CSO0LSrU2PxkW9IKsxRA8q1Z_q-MNlA-WtZunbdxw&s=10",
-    "German-French Branch": "https://thumbs.dreamstime.com/b/france-germany-circle-flags-d-icon-round-german-french-national-symbols-vector-304673402.jpg",
-    // "German-French Branch": "../images/german-french.png",
-};
+// Profile pictures now live in js/pics.js (PROFILE_PICS and GROUP_PICS).
 
 const filterInput = document.getElementById("filterInput");
 const newGroupBtn = document.getElementById("newGroup");
@@ -41,6 +13,8 @@ const chatBox = document.getElementById("chatBox");
 const typingLine = document.getElementById("typing");
 const chatForm = document.getElementById("chatForm");
 const messageInput = document.getElementById("messageInput");
+
+messageInput.placeholder = "Type a message... (use @Name to ask one person)";
 
 // group modal
 const groupModal = document.getElementById("groupModal");
@@ -59,7 +33,7 @@ const INVESTORS_KEY = "__investors__";    // built-in "All Investors"
 const GROUP_PREFIX = "g:";                // custom groups are stored as g:<id>
 const INVESTOR_PREFIX = "inv:";           // investor contacts are keyed inv:<name>|<company>
 const MAX_MESSAGES = 200;                 // per conversation
-const MAX_GROUP_REPLIES = 3;              // how many members answer in a group chat
+const MAX_GROUP_REPLIES = 3;              // how many members answer in a group chat (when nobody is @mentioned)
 
 // Everyone you can chat with is a "person": { kind, key, name, ... }
 let employees = loadEmployees();          // kind "employee"
@@ -73,7 +47,7 @@ const pending = {};                       // conversationKey -> names currently 
 let editingGroupId = null;                // null = creating a new group
 let modalSelected = new Set();            // person keys ticked in the group modal
 
-// ---------- profile pictures (configured at the top of this file) ----------
+// ---------- profile pictures (configured in js/pics.js) ----------
 
 function normalizeKey(text) {
     return String(text).trim().toLowerCase();
@@ -521,6 +495,36 @@ function saveGroup() {
     selectConversation(key);
 }
 
+// ---------- @mentions ----------
+
+// "@Brad Q. how are the servers?" -> only Brad answers.
+// Matches full name, Emp Code, or a first name that is unique in the open chat.
+function parseMentions(text, pool) {
+    const people = [];
+    let cleaned = text;
+
+    [...pool].sort((a, b) => b.name.length - a.name.length).forEach(p => {
+        const candidates = [p.name];
+        if (p.kind === "employee") candidates.push(p.key);
+
+        const first = firstName(p);
+        const uniqueFirst = pool.filter(x => normalizeKey(firstName(x)) === normalizeKey(first)).length === 1;
+        if (uniqueFirst && first.length >= 2) candidates.push(first);
+
+        for (const c of candidates) {
+            const regex = new RegExp("@" + escapeRegex(c) + "(?![a-z0-9])", "i");
+            if (regex.test(cleaned)) {
+                if (!people.includes(p)) people.push(p);
+                cleaned = cleaned.replace(regex, " ");
+                break;
+            }
+        }
+    });
+
+    const unknown = /(^|\s)@\S+/.test(cleaned);
+    return { people: people, cleaned: cleaned.replace(/\s+/g, " ").trim(), unknown: unknown };
+}
+
 // ---------- replies ----------
 
 function pick(list) {
@@ -533,7 +537,12 @@ function firstName(person) {
 
 function formatMoney(value) {
     const n = Number(value);
-    return isNaN(n) ? String(value) : n.toLocaleString("en-US");
+    if (isNaN(n)) return String(value);
+    const units = [["T", 1e12], ["B", 1e9], ["M", 1e6], ["K", 1e3]];
+    for (const [symbol, size] of units) {
+        if (n >= size) return +(n / size).toFixed(2) + symbol;
+    }
+    return n.toLocaleString("en-US");
 }
 
 function escapeRegex(text) {
@@ -545,6 +554,33 @@ function mentions(text, term) {
     const t = String(term || "").trim();
     if (!t) return false;
     return new RegExp("(^|[^a-z0-9])" + escapeRegex(t) + "([^a-z0-9]|$)", "i").test(text);
+}
+
+function plural(n, word, pluralWord) {
+    return n + " " + (n === 1 ? word : (pluralWord || word + "s"));
+}
+
+function sameText(a, b) {
+    return !!a && !!b && normalizeKey(a) === normalizeKey(b);
+}
+
+function isMe(person, value) {
+    return sameText(value, person.name) || sameText(value, person.key);
+}
+
+function isAuthor(person, value) {
+    return isMe(person, value) || sameText(value, firstName(person));
+}
+
+function daysUntil(dateStr) {
+    const t = Date.parse(dateStr);
+    if (isNaN(t)) return null;
+    const today = Date.parse(new Date().toISOString().slice(0, 10));
+    return Math.round((t - today) / 86400000);
+}
+
+function sumOf(list, field) {
+    return list.reduce((s, x) => s + (Number(String(x[field]).replace(/[^0-9.]/g, "")) || 0), 0);
 }
 
 // -- company records (projects, clients, assets, departments)
@@ -595,97 +631,271 @@ function investorRecordReply(found) {
     return recordReply(found);
 }
 
-// -- engineers (employees)
+// -- engineers (employees): every topic returns { summary, take } built from the databases
 
-function serverReply() {
-    const servers = loadJSON("serverData", []);
-    if (!Array.isArray(servers) || servers.length === 0) {
-        return "I don't see any servers on the Server Database page yet.";
-    }
-    const offline = servers.filter(s => String(s.status).trim().toLowerCase() === "offline");
-    if (offline.length === 0) {
-        return servers.length + " server(s) on record, none marked offline.";
-    }
-    return servers.length + " server(s) on record, " + offline.length + " marked offline: " +
-        offline.map(s => s.serverName).join(", ") + ". I'll look into it.";
+function offlineServers() {
+    return loadList("serverData").filter(s => String(s.status).trim().toLowerCase() === "offline");
 }
 
-function commitReply() {
-    const commits = loadJSON("commitData", []);
-    if (!Array.isArray(commits) || commits.length === 0) {
-        return "Nothing in the commit log yet.";
-    }
-    const latest = commits.reduce((a, b) => (b.commitDate >= a.commitDate ? b : a));
-    return 'Latest commit on record: "' + latest.commitMessage + '" by ' + latest.author +
-        " on " + latest.branch + ", dated " + latest.commitDate + ".";
+function latestCommit(commits) {
+    return commits.reduce((a, b) => (String(b.commitDate) >= String(a.commitDate) ? b : a));
 }
 
-function projectReply(person) {
+function serverTopic() {
+    const servers = loadList("serverData");
+    if (servers.length === 0) {
+        return { summary: "There are no servers on the Server Database page yet.", take: "Add them there and I can track uptime." };
+    }
+    const down = offlineServers();
+    const up = servers.filter(s => String(s.status).trim().toLowerCase() === "online").length;
+    let summary = plural(servers.length, "server") + " on record, " + up + " online";
+    if (down.length) {
+        summary += " and " + down.length + " offline (" +
+            down.map(s => s.serverName + (s.location ? " in " + s.location : "")).join(", ") + ")";
+    }
+    summary += ".";
+    return {
+        summary: summary,
+        take: down.length ? "I'd start with " + down[0].serverName + ": check its logs and the last deploy." : "Nothing to chase there right now."
+    };
+}
+
+function commitTopic(person) {
+    const commits = loadList("commitData");
+    if (commits.length === 0) {
+        return { summary: "The commit log is empty.", take: "Nothing has been pushed yet." };
+    }
+    const latest = latestCommit(commits);
+    const branches = {};
+    commits.forEach(c => { branches[c.branch] = (branches[c.branch] || 0) + 1; });
+    const names = Object.keys(branches);
+    const busiest = names.sort((a, b) => branches[b] - branches[a])[0];
+    const mine = commits.filter(c => isAuthor(person, c.author)).length;
+
+    let summary = plural(commits.length, "commit") + " across " + plural(names.length, "branch", "branches") +
+        ", busiest is " + busiest + '. Latest: "' + latest.commitMessage + '" by ' + latest.author +
+        " on " + latest.branch + " (" + latest.commitDate + ").";
+    if (mine) summary += " " + mine + " of them are mine.";
+    return { summary: summary, take: "Keep commits small and the review queue short." };
+}
+
+function projectTopic(person) {
     const projects = loadList("projectData");
-    if (projects.length === 0) return "No projects on the board yet. Add some on the Projects page.";
-
-    const mine = projects.filter(p =>
-        normalizeKey(p.lead) === normalizeKey(person.name) || normalizeKey(p.lead) === normalizeKey(person.key));
-    if (mine.length > 0) {
-        return "I'm leading " + mine.map(p => p.codename + " (" + p.progress + "%)").join(", ") +
-            ". Ask me about any codename.";
+    if (projects.length === 0) {
+        return { summary: "There are no projects on the board yet.", take: "Add some on the Projects page and I'll track them." };
     }
+    const counts = ["Active", "Planning", "On Hold", "Completed"]
+        .map(s => [s, projects.filter(p => p.status === s).length])
+        .filter(entry => entry[1] > 0)
+        .map(entry => entry[1] + " " + entry[0].toLowerCase());
+    const open = projects.filter(p => p.status !== "Completed");
+    const overdue = open.filter(p => { const d = daysUntil(p.deadline); return d !== null && d < 0; });
+    const upcoming = open
+        .filter(p => { const d = daysUntil(p.deadline); return d !== null && d >= 0; })
+        .sort((a, b) => String(a.deadline).localeCompare(String(b.deadline)));
+    const mine = projects.filter(p => isMe(person, p.lead));
 
-    const live = projects.filter(p => p.status === "Active").length;
-    return projects.length + " project(s) on the board, " + live + " active: " +
-        projects.map(p => p.codename).join(", ") + ". Ask me about a codename.";
+    let summary = plural(projects.length, "project") + " on the board (" + counts.join(", ") + ").";
+    if (overdue.length) summary += " Overdue: " + overdue.map(p => p.codename).join(", ") + ".";
+    if (upcoming.length) summary += " Next due: " + upcoming[0].codename + " on " + upcoming[0].deadline + ".";
+    if (mine.length) summary += " I'm leading " + mine.map(p => p.codename + " (" + p.progress + "%)").join(", ") + ".";
+
+    return {
+        summary: summary,
+        take: overdue.length ? "Overdue work comes first. I'd re-plan " + overdue[0].codename + "." : "Ask me about any codename for details."
+    };
 }
 
-function clientReply() {
+function clientTopic() {
     const clients = loadList("clientData");
-    if (clients.length === 0) return "No clients on record yet. Add some on the Clients page.";
+    if (clients.length === 0) {
+        return { summary: "There are no clients on record yet.", take: "Add some on the Clients page." };
+    }
     const active = clients.filter(c => c.status === "Active");
-    return clients.length + " client(s) on record, " + active.length + " active" +
-        (active.length ? ": " + active.map(c => c.clientName).join(", ") : "") + ".";
+    const prospects = clients.filter(c => c.status === "Prospect").length;
+    const churned = clients.filter(c => c.status === "Churned").length;
+    const top = [...active].sort((a, b) => (Number(b.contractValue) || 0) - (Number(a.contractValue) || 0))[0];
+
+    let summary = plural(clients.length, "client") + " on record, " + active.length + " active worth $" +
+        formatMoney(sumOf(active, "contractValue")) + " in contracts";
+    if (top) summary += "; biggest is " + top.clientName + " ($" + formatMoney(top.contractValue) + ")";
+    summary += ".";
+    if (prospects) summary += " " + plural(prospects, "prospect") + " in the pipeline.";
+    if (churned) summary += " " + churned + " churned.";
+
+    return { summary: summary, take: "Account health is a sales call, but I'll make sure delivery keeps up." };
 }
 
-function assetReply() {
+function assetTopic(person) {
     const assets = loadList("assetData");
-    if (assets.length === 0) return "No assets on record yet. Add some on the Assets page.";
+    if (assets.length === 0) {
+        return { summary: "There are no assets on record yet.", take: "Add some on the Assets page." };
+    }
+    const byStatus = ["In Use", "In Stock", "Under Repair", "Retired"]
+        .map(s => [s, assets.filter(a => a.status === s).length])
+        .filter(entry => entry[1] > 0)
+        .map(entry => entry[1] + " " + entry[0].toLowerCase());
     const repair = assets.filter(a => a.status === "Under Repair");
-    const stock = assets.filter(a => a.status === "In Stock").length;
-    return assets.length + " asset(s) on record, " + stock + " in stock, " + repair.length + " under repair" +
-        (repair.length ? ": " + repair.map(a => a.assetTag).join(", ") : "") + ".";
+    const mine = assets.filter(a => isMe(person, a.assignedTo));
+
+    let summary = plural(assets.length, "asset") + " on record (" + byStatus.join(", ") + ").";
+    if (repair.length) summary += " Under repair: " + repair.map(a => a.assetTag).join(", ") + ".";
+    if (mine.length) summary += " Assigned to me: " + mine.map(a => a.assetTag).join(", ") + ".";
+
+    return {
+        summary: summary,
+        take: repair.length ? "Raise a ticket for " + repair[0].assetTag + " if it's blocking anyone." : "Inventory looks healthy."
+    };
 }
 
-function departmentReply() {
+function departmentTopic(person) {
     const depts = loadList("departmentData");
-    if (depts.length === 0) return "No departments on record yet. Add some on the Departments page.";
-    return depts.length + " department(s): " + depts.map(d => d.deptName + " (" + d.head + ")").join(", ") + ".";
+    if (depts.length === 0) {
+        return { summary: "There are no departments on record yet.", take: "Add some on the Departments page." };
+    }
+    const mine = depts.filter(d => isMe(person, d.head));
+    let summary = plural(depts.length, "department") + ": " + depts.map(d => d.deptName + " (" + d.head + ")").join(", ") + ".";
+    if (mine.length) summary += " I head " + mine.map(d => d.deptName).join(", ") + ".";
+    return { summary: summary, take: "" };
 }
 
-const engineerRules = [
-    {
-        test: /\b(salary|pay|raise|bonus|appraisal)\b/,
-        reply: ["That's one for HR, not me.", "I just write code. Ask HR about pay."]
-    },
-    { test: /\b(servers?|uptime|downtime|offline|outage|ping)\b/, reply: serverReply },
-    { test: /\b(commits?|push(ed)?|pull request|prs?|merge[ds]?|branch(es)?|git)\b/, reply: commitReply },
-    { test: /\b(projects?|codenames?|milestones?|roadmap|sprints?|portfolio)\b/, reply: projectReply },
-    { test: /\b(clients?|customers?|accounts?|contracts?)\b/, reply: clientReply },
-    { test: /\b(assets?|laptops?|hardware|equipment|inventory|licen[sc]es?)\b/, reply: assetReply },
-    { test: /\b(departments?|depts?|headcount|org chart)\b/, reply: departmentReply },
-    {
-        test: /\b(bugs?|errors?|crash(es|ed)?|issues?|broken|fail(s|ed|ing)?|exception)\b/,
-        reply: [
+function teamTopic(person) {
+    if (employees.length === 0) {
+        return { summary: "There are no employees in the system yet.", take: "" };
+    }
+    const countries = new Set(employees.map(e => normalizeKey(e.country)).filter(Boolean));
+    let summary = plural(employees.length, "employee") + " in the system across " + plural(countries.size, "country", "countries") + ".";
+    if (person.country) {
+        const here = employees.filter(e => e.key !== person.key && sameText(e.country, person.country)).length;
+        summary += " " + plural(here, "colleague") + " here in " + person.country + ".";
+    }
+    return { summary: summary, take: employees.length > 1 ? "Use @Name to ask someone directly." : "" };
+}
+
+function investorTopic() {
+    const list = loadList("investorData");
+    if (list.length === 0) {
+        return { summary: "There are no investors on record yet.", take: "Management handles that side." };
+    }
+    const top = [...list].sort((a, b) => sumOf([b], "investment") - sumOf([a], "investment"))[0];
+    return {
+        summary: plural(list.length, "investor") + " backing us with $" + formatMoney(sumOf(list, "investment")) +
+            " in total; largest is " + top.investorName + " ($" + formatMoney(sumOf([top], "investment")) + ").",
+        take: "Money matters are for management. I keep the product shipping."
+    };
+}
+
+function deployTopic(person) {
+    const down = offlineServers();
+    return {
+        summary: "Pre-flight check: " + serverTopic().summary + " " + commitTopic(person).summary,
+        take: down.length
+            ? "Don't ship until " + down[0].serverName + " is back."
+            : pick([
+                "Is staging green? Don't push to prod until it is.",
+                "Run the pipeline first. If it passes, ship it. And never on a Friday.",
+                "Make sure there's a rollback plan before we deploy."
+            ])
+    };
+}
+
+function bugTopic(person) {
+    const down = offlineServers();
+    const commits = loadList("commitData");
+    let summary = "Suspects from the data: " +
+        (down.length ? "offline servers (" + down.map(s => s.serverName).join(", ") + ")." : "no servers are marked offline.");
+    if (commits.length) {
+        const latest = latestCommit(commits);
+        summary += ' Most recent change: "' + latest.commitMessage + '" by ' + latest.author + " on " + latest.branch + ".";
+    }
+    return {
+        summary: summary,
+        take: pick([
             "Can you share the stack trace? Does it reproduce on a clean build?",
-            "Classic. Check the logs first. I'd bet on a null reference.",
+            "Check the logs first. I'd bet on a null reference.",
             "Open a ticket with repro steps and I'll look after standup."
-        ]
-    },
-    {
-        test: /\b(deploy(ed|ment|ing)?|release|prod|production|ship(ping)?)\b/,
-        reply: [
-            "Is staging green? Don't push to prod until it is.",
-            "Run the pipeline first. If it passes, ship it. And never on a Friday.",
-            "Make sure there's a rollback plan before we deploy."
-        ]
-    },
+        ])
+    };
+}
+
+function overviewTopic() {
+    const servers = loadList("serverData");
+    const online = servers.filter(s => String(s.status).trim().toLowerCase() === "online").length;
+    const active = loadList("projectData").filter(p => p.status === "Active").length;
+    const clients = loadList("clientData").filter(c => c.status === "Active").length;
+    return {
+        summary: "Here's what the system shows: " + plural(employees.length, "employee") + ", " +
+            plural(active, "active project") + ", " + online + " of " + servers.length + " servers online, " +
+            plural(clients, "active client") + ", " + plural(loadList("assetData").length, "asset") + ".",
+        take: pick(engineerFallbacks)
+    };
+}
+
+// a particular employee named in the message (with or without @)
+function namedEmployees(text) {
+    return employees.filter(e => {
+        if (mentions(text, e.name)) return true;
+        const first = firstName(e);
+        const unique = employees.filter(x => sameText(firstName(x), first)).length === 1;
+        return unique && first.length >= 3 && mentions(text, first);
+    });
+}
+
+function personTopic(target, me) {
+    const projects = loadList("projectData").filter(p => isMe(target, p.lead));
+    const assets = loadList("assetData").filter(a => isMe(target, a.assignedTo));
+    const commits = loadList("commitData").filter(c => isAuthor(target, c.author));
+    const depts = loadList("departmentData").filter(d => isMe(target, d.head));
+
+    const bits = [];
+    if (projects.length) bits.push("leads " + projects.map(p => p.codename + " (" + p.progress + "%)").join(", "));
+    if (depts.length) bits.push("heads " + depts.map(d => d.deptName).join(", "));
+    if (commits.length) bits.push(plural(commits.length, "commit") + " logged");
+    if (assets.length) bits.push(plural(assets.length, "asset") + " assigned");
+
+    const summary = target.name + " is " + (target.designation || "on the team") +
+        (target.country ? " based in " + target.country : "") + (bits.length ? "; " + bits.join("; ") : "") + ".";
+    return { summary: summary, take: target.key === me.key ? "That's me. Ask away." : "Use @" + target.name + " to ask them directly." };
+}
+
+function recordTopic(found, person) {
+    const x = found.item;
+    let summary = recordReply(found);
+    let take = "";
+
+    if (found.type === "project") {
+        const d = daysUntil(x.deadline);
+        if (x.status !== "Completed" && d !== null) {
+            if (d < 0) summary += " It's " + plural(-d, "day") + " overdue.";
+            else if (d === 0) summary += " Due today.";
+            else if (d <= 14) summary += " " + plural(d, "day") + " left.";
+        }
+        if (isMe(person, x.lead)) take = "That's mine. I'll keep it moving.";
+        else if (x.status === "On Hold") take = "It's on hold. Someone needs to unblock it.";
+        else if (d !== null && d < 0 && x.status !== "Completed") take = "It needs a re-plan.";
+    } else if (found.type === "asset" && isMe(person, x.assignedTo)) {
+        take = "That one's with me.";
+    } else if (found.type === "department" && isMe(person, x.head)) {
+        take = "That's my department.";
+    }
+    return { summary: summary, take: take };
+}
+
+// Topics tried in order; a message can hit two. "solo" topics answer alone.
+const engineerTopics = [
+    { test: /\b(deploy(ed|ment|ing)?|release|prod|production|ship(ping)?)\b/, run: deployTopic, solo: true },
+    { test: /\b(bugs?|errors?|crash(es|ed)?|issues?|broken|fail(s|ed|ing)?|exception)\b/, run: bugTopic, solo: true },
+    { test: /\b(servers?|uptime|downtime|offline|outage|ping)\b/, run: serverTopic },
+    { test: /\b(commits?|push(ed)?|pull request|prs?|merge[ds]?|branch(es)?|git)\b/, run: commitTopic },
+    { test: /\b(projects?|codenames?|milestones?|roadmap|sprints?|portfolio|deadlines?|eta|due|overdue|progress|status)\b/, run: projectTopic },
+    { test: /\b(clients?|customers?|accounts?|contracts?)\b/, run: clientTopic },
+    { test: /\b(assets?|laptops?|hardware|equipment|inventory|licen[sc]es?)\b/, run: assetTopic },
+    { test: /\b(departments?|depts?|org chart)\b/, run: departmentTopic },
+    { test: /\b(team|colleagues?|staff|headcount|employees?|people|countries)\b/, run: teamTopic },
+    { test: /\b(investors?|funding|investment|stake|shareholders?)\b/, run: investorTopic },
+];
+
+const engineerSmallTalk = [
     {
         test: /\b(review|reviews|reviewing|code review)\b/,
         reply: ["Send me the PR link. I'll review it by end of day.", "Keep the diff small and I'll review it faster."]
@@ -699,7 +909,7 @@ const engineerRules = [
         reply: ["Could that be a message instead? Kidding. What time works?", "I'm free after standup."]
     },
     {
-        test: /\b(deadline|eta|when|done|ready|status)\b/,
+        test: /\b(when|done|ready)\b/,
         reply: [
             "ETA depends on the review queue. Realistically, end of the week.",
             "Almost there. Just fixing the last failing test.",
@@ -725,7 +935,7 @@ const engineerRules = [
     {
         test: /\b(hi|hello|hey|yo|sup|hola|namaste)\b/,
         reply: person => pick([
-            "Hey! " + firstName(person) + " here. What's up?",
+            "Hey! " + firstName(person) + " here" + (person.designation ? ", " + person.designation : "") + ". What's up?",
             "Hello! Currently waiting on a build, so go ahead.",
             "Hey, give me a sec, just finishing a merge."
         ])
@@ -733,11 +943,55 @@ const engineerRules = [
 ];
 
 const engineerFallbacks = [
-    "Interesting. Can you give me more context?",
+    "Can you give me more context?",
     "Let me check and get back to you.",
-    "I'll look into it. Can you open a ticket so it doesn't get lost?",
+    "Can you open a ticket so it doesn't get lost?",
     "Works on my machine. Can you send the exact steps?"
 ];
+
+function composeReply(parts) {
+    const summary = parts.map(p => p.summary).join(" ");
+    const take = (parts.find(p => p.take) || {}).take;
+    return pick(["Quick summary: ", "Here's where we stand: ", "Short version: "]) + summary + (take ? " " + take : "");
+}
+
+function getEmployeeReply(person, text) {
+    const lower = text.toLowerCase();
+
+    if (/\b(salary|pay|payroll|raise|bonus|appraisal)\b/.test(lower)) {
+        return pick(["That's one for HR, not me.", "I just write code. Ask HR about pay."]);
+    }
+
+    const parts = [];
+
+    const named = namedEmployees(lower);
+    if (named.length) parts.push(personTopic(named[0], person));
+
+    const found = lookupRecord(lower);
+    if (found) {
+        parts.push(recordTopic(found, person));
+    } else {
+        for (const topic of engineerTopics) {
+            if (parts.length >= 2) break;
+            if (!topic.test.test(lower)) continue;
+            if (topic.solo) {
+                parts.push(topic.run(person));
+                break;
+            }
+            parts.push(topic.run(person));
+        }
+    }
+
+    if (parts.length > 0) return composeReply(parts);
+
+    for (const rule of engineerSmallTalk) {
+        if (rule.test.test(lower)) {
+            return typeof rule.reply === "function" ? rule.reply(person) : pick(rule.reply);
+        }
+    }
+
+    return composeReply([overviewTopic()]);
+}
 
 // -- investors
 
@@ -850,21 +1104,19 @@ const investorFallbacks = [
 ];
 
 function getReply(person, text) {
-    const investor = person.kind === "investor";
-    const rules = investor ? investorRules : engineerRules;
-    const fallbacks = investor ? investorFallbacks : engineerFallbacks;
+    if (person.kind !== "investor") return getEmployeeReply(person, text);
+
     const lower = text.toLowerCase();
 
-    // a named project / client / asset tag / department gets a direct answer
     const found = lookupRecord(lower);
-    if (found) return investor ? investorRecordReply(found) : recordReply(found);
+    if (found) return investorRecordReply(found);
 
-    for (const rule of rules) {
+    for (const rule of investorRules) {
         if (rule.test.test(lower)) {
             return typeof rule.reply === "function" ? rule.reply(person) : pick(rule.reply);
         }
     }
-    return pick(fallbacks);
+    return pick(investorFallbacks);
 }
 
 function scheduleReply(key, person, userText, delay) {
@@ -898,14 +1150,34 @@ chatForm.addEventListener("submit", (event) => {
     const key = activeKey;
     addMessage(key, { mine: true, from: "You", text: text, time: Date.now() });
     messageInput.value = "";
+
+    const parsed = parseMentions(text, pool);
+
+    // an @ that matches nobody in this chat: say so, nobody replies
+    if (parsed.unknown && parsed.people.length === 0) {
+        addMessage(key, {
+            mine: false,
+            from: "System",
+            text: "Nobody in this chat matches that @mention. Use @ followed by a full name, a unique first name or an Emp Code.",
+            time: Date.now()
+        });
+        renderMessages();
+        return;
+    }
+
     renderMessages();
 
-    const responders = isGroupChat()
-        ? [...pool].sort(() => Math.random() - 0.5).slice(0, MAX_GROUP_REPLIES)
-        : pool;
+    // @mentioned people answer alone; otherwise the usual rules apply
+    const responders = parsed.people.length > 0
+        ? parsed.people
+        : (isGroupChat()
+            ? [...pool].sort(() => Math.random() - 0.5).slice(0, MAX_GROUP_REPLIES)
+            : pool);
+
+    const question = parsed.cleaned || text;
 
     responders.forEach((person, i) => {
-        scheduleReply(key, person, text, 800 + i * 900 + Math.random() * 700);
+        scheduleReply(key, person, question, 800 + i * 900 + Math.random() * 700);
     });
 });
 
